@@ -7,7 +7,9 @@ class ArrayContainer
     double**** array1;
     double** array2;
     double** array3;
-    double*** array4;
+    double**** array4;
+    double** array5;
+    double** array6;
 };
 
 #endif

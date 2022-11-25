@@ -19,17 +19,23 @@ ArrayContainer* Markov(int counter,
                 int n,
                 bool stochasticHTcost,
                 double b, 
-                double alpha, 
+                double theta, 
                 double ptau,
                 bool postMatingTimeout,     
                 double* binom,
-                double** Rt,
-                double** pMate,
+                double** phiLargeWav,
+                double** phiSmallWav,
+                double** largePMate,
+                double** smallPMate,
                 double** pFemMaxList, 
                 double** pFemMinList,
                 double* HTCprob,
-                double*** resiStrategy, 
-                double**** freqDist,
+                double*** largeResiStrategy, 
+                double*** smallResiStrategy,
+                double**** largeFreqDist,
+                double**** smallFreqDist,
+                double q,
+                double alpha,
                 double pMort, 
                 double pWaveMort)
                 
@@ -37,7 +43,8 @@ ArrayContainer* Markov(int counter,
     int tideIndex;
     int timeIndex;
 
-    freqDist[0][0][(eMax-1)/2][0] = 1.0; //put the whole populaton at the middle energy level
+    largeFreqDist[0][0][(eMax-1)/2][0] = q; //put the whole populaton at the middle energy level
+    smallFreqDist[0][0][(eMax-1)/2][0] = (1-q);
 
     for(int tide=0; tide<tides; tide++)
     {
@@ -83,11 +90,12 @@ ArrayContainer* Markov(int counter,
                             for(int i=0; i<2; i++) //apply high tide cost to both non and timeout arrays
                             {
                                 //std::cout << "i = " << i << ", tideIndex = " << tideIndex << ", eHTindex = " << eHTindex << ", timeIndex = " << timeIndex << std::endl;
-                                freqDist[i][tideIndex][eHTindex][timeIndex] += (freqDist[i][tide][e][t] * HTCprob[x]);
+                                largeFreqDist[i][tideIndex][eHTindex][timeIndex] += (largeFreqDist[i][tide][e][t] * HTCprob[x]);
+                                smallFreqDist[i][tideIndex][eHTindex][timeIndex] += (smallFreqDist[i][tide][e][t] * HTCprob[x]);
                             }
                         }
                     }
-                    else
+                    else //if using fixed high tide cost
                     {
                         int eHTindex = e - HTcost;
 
@@ -95,27 +103,36 @@ ArrayContainer* Markov(int counter,
 
                         for(int i=0; i<2; i++)
                         {
-                            freqDist[i][tideIndex][eHTindex][timeIndex] += freqDist[i][tide][e][t];
+                            largeFreqDist[i][tideIndex][eHTindex][timeIndex] += largeFreqDist[i][tide][e][t];
+                            smallFreqDist[i][tideIndex][eHTindex][timeIndex] += smallFreqDist[i][tide][e][t];
                         }
                     }
                 }
             }
             else //if we don't go across a tide boundary
             {
-                double RtSum = 0.0; //set the proportion of rivals waving in each timestep to zero
+                double propLargeWaving = 0.0; //set the proportion of rivals waving in each timestep to zero
+                double propSmallWaving = 0.0;
                 for(int e=1; e<eMax; e++)
                 {
-                    RtSum += (resiStrategy[tide][e][t]*freqDist[0][tide][e][t]); //add up the products of the probability of waving and the frequency of the 
+                    propLargeWaving += (largeResiStrategy[tide][e][t]*(largeFreqDist[0][tide][e][t]/q)); //add up the products of the probability of waving and the frequency of the 
                                                                     //population that have that probability of waving
+                    propSmallWaving += (smallResiStrategy[tide][e][t]*(smallFreqDist[0][tide][e][t]/(1-q)));
                 }
-                Rt[tide][t] = RtSum; //set the total proportion of rivals waving for that timestep
-                double powerTop = pow(Rt[tide][t],alpha); //calculate the top power part of the pMate function
-                double pMateTop = (pFemMinList[tide][t] + powerTop*(pFemMaxList[tide][t] - pFemMinList[tide][t])); //calculate the numerator for pMate function
-                double pMateBott = Rt[tide][t] + b; //calculate the denominator for pMate function
+                phiLargeWav[tide][t] = propLargeWaving; //set the total proportion of rivals waving for that timestep
+                phiSmallWav[tide][t] = propSmallWaving; //set the total proportion of rivals waving for that timestep
 
-                pMate[tide][t] = pMateTop / pMateBott; //calculate pMate from Rt
+                double effectOfWavers = (phiLargeWav[tide][t] * q) + ((1-alpha) * phiSmallWav[tide][t] * (1-q));
+                double pMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
+                double pMateBottomLine = effectOfWavers + b;
 
-                if(pMate[tide][t] > 1.0) pMate[tide][t] = 1.0; //resets probability of mating within 1
+
+
+                largePMate[tide][t] = pMateTopLine / pMateBottomLine; //calculate pMate from Rt
+                smallPMate[tide][t] = (pMateTopLine / pMateBottomLine) * (1 - alpha);
+
+                if(largePMate[tide][t] > 1.0) largePMate[tide][t] = 1.0; //resets probability of mating within 1
+                if(smallPMate[tide][t] > 1.0) smallPMate[tide][t] = 1.0; //resets probability of mating within 1
 
                 for(int e=0; e<eMax; e++) //cycle through all energy levels
                 {          
@@ -129,7 +146,9 @@ ArrayContainer* Markov(int counter,
                             if(eForIndex>=eMax) eForIndex = eMax-1;
                             if(eForIndex<0) eForIndex = 0;
                         
-                            freqDist[0][tideIndex][eForIndex][timeIndex] += (freqDist[0][tide][e][t] * (1-resiStrategy[tide][e][t]) * binom[k] * (1-pMort) * metCostProb[m]);
+                            largeFreqDist[0][tideIndex][eForIndex][timeIndex] += (largeFreqDist[0][tide][e][t] * (1-largeResiStrategy[tide][e][t]) * binom[k] * (1-pMort) * metCostProb[m]);
+                            smallFreqDist[0][tideIndex][eForIndex][timeIndex] += (smallFreqDist[0][tide][e][t] * (1-smallResiStrategy[tide][e][t]) * binom[k] * (1-pMort) * metCostProb[m]);
+
                         }
                     }
                     //WAVING
@@ -140,16 +159,19 @@ ArrayContainer* Markov(int counter,
                         if(eWaveIndex<0) eWaveIndex=0; //reset within bounds
 
                         //those who don't mate
-                        freqDist[0][tideIndex][eWaveIndex][timeIndex] += (freqDist[0][tide][e][t] * resiStrategy[tide][e][t] * (1-pMate[tide][t]) * (1-(pMort*pWaveMort)) * metCostProb[m]);
-                        
+                        largeFreqDist[0][tideIndex][eWaveIndex][timeIndex] += (largeFreqDist[0][tide][e][t] * largeResiStrategy[tide][e][t] * (1-largePMate[tide][t]) * (1-(pMort*pWaveMort)) * metCostProb[m]);
+                        smallFreqDist[0][tideIndex][eWaveIndex][timeIndex] += (smallFreqDist[0][tide][e][t] * smallResiStrategy[tide][e][t] * (1-smallPMate[tide][t]) * (1-(pMort*pWaveMort)) * metCostProb[m]);
+
                         if(postMatingTimeout == true)
                         {
                             //those who do mate
-                            freqDist[1][tideIndex][eWaveIndex][timeIndex] += (freqDist[0][tide][e][t] * resiStrategy[tide][e][t] * pMate[tide][t] * (1-(pMort*pWaveMort)) * metCostProb[m]);
+                            largeFreqDist[1][tideIndex][eWaveIndex][timeIndex] += (largeFreqDist[0][tide][e][t] * largeResiStrategy[tide][e][t] * largePMate[tide][t] * (1-(pMort*pWaveMort)) * metCostProb[m]);
+                            smallFreqDist[1][tideIndex][eWaveIndex][timeIndex] += (smallFreqDist[0][tide][e][t] * smallResiStrategy[tide][e][t] * smallPMate[tide][t] * (1-(pMort*pWaveMort)) * metCostProb[m]);
                         }else
                         {
                             //those who do mate
-                            freqDist[0][tideIndex][eWaveIndex][timeIndex] += (freqDist[0][tide][e][t] * resiStrategy[tide][e][t] * pMate[tide][t] * (1-(pMort*pWaveMort)) * metCostProb[m]);
+                            largeFreqDist[0][tideIndex][eWaveIndex][timeIndex] += (largeFreqDist[0][tide][e][t] * largeResiStrategy[tide][e][t] * largePMate[tide][t] * (1-(pMort*pWaveMort)) * metCostProb[m]);
+                            smallFreqDist[0][tideIndex][eWaveIndex][timeIndex] += (smallFreqDist[0][tide][e][t] * smallResiStrategy[tide][e][t] * smallPMate[tide][t] * (1-(pMort*pWaveMort)) * metCostProb[m]);
                         }
                     }
                         
@@ -163,48 +185,72 @@ ArrayContainer* Markov(int counter,
                             if(eTimeout<0) eTimeout=0; //reset within bounds
 
                             //those who leave timeout
-                            freqDist[0][tideIndex][eTimeout][timeIndex] += (freqDist[1][tide][e][t] * ptau * (1-pMort) * metCostProb[m]);
+                            largeFreqDist[0][tideIndex][eTimeout][timeIndex] += (largeFreqDist[1][tide][e][t] * ptau * (1-pMort) * metCostProb[m]);
+                            smallFreqDist[0][tideIndex][eTimeout][timeIndex] += (smallFreqDist[1][tide][e][t] * ptau * (1-pMort) * metCostProb[m]);
 
                             //those who stay in timeout
-                            freqDist[1][tideIndex][eTimeout][timeIndex] += (freqDist[1][tide][e][t] * (1-ptau) * (1-pMort) * metCostProb[m]);
+                            largeFreqDist[1][tideIndex][eTimeout][timeIndex] += (largeFreqDist[1][tide][e][t] * (1-ptau) * (1-pMort) * metCostProb[m]);
+                            smallFreqDist[1][tideIndex][eTimeout][timeIndex] += (smallFreqDist[1][tide][e][t] * (1-ptau) * (1-pMort) * metCostProb[m]);
+
                         }
                     }
                 } 
             }
             //Move proportion that die due to background mortality
-            double propForSum = 0.0;
-            double propWavSum = 0.0;
-            double propTimeoutSum = 0.0;
+            double largePropForSum = 0.0;
+            double largePropWavSum = 0.0;
+            double largePropTimeoutSum = 0.0;
+
+            double smallPropForSum = 0.0;
+            double smallPropWavSum = 0.0;
+            double smallPropTimeoutSum = 0.0;
             for(int e=1; e<eMax; e++)
             {
-                propForSum += (freqDist[0][tide][e][t] * (1-resiStrategy[tide][e][t])); //add up proportion of non-dead that are foraging
-                propWavSum += (freqDist[0][tide][e][t] * resiStrategy[tide][e][t]);
+                largePropForSum += (largeFreqDist[0][tide][e][t] * (1-largeResiStrategy[tide][e][t])); //add up proportion of non-dead that are foraging
+                smallPropForSum += (smallFreqDist[0][tide][e][t] * (1-smallResiStrategy[tide][e][t])); //add up proportion of non-dead that are foraging
+
+                largePropWavSum += (largeFreqDist[0][tide][e][t] * largeResiStrategy[tide][e][t]);
+                smallPropWavSum += (smallFreqDist[0][tide][e][t] * smallResiStrategy[tide][e][t]);
+
 
                 if(postMatingTimeout == true)
                 {
-                    propTimeoutSum += freqDist[1][tide][e][t];
+                    largePropTimeoutSum += largeFreqDist[1][tide][e][t];
+                    smallPropTimeoutSum += smallFreqDist[1][tide][e][t];
                 }
             }
-            freqDist[0][tideIndex][0][timeIndex] += (propForSum * pMort) + (propWavSum * (pMort * pWaveMort)) + (propTimeoutSum * pMort); //put the dead in e=0 in the next time step
+            largeFreqDist[0][tideIndex][0][timeIndex] += (largePropForSum * pMort) + (largePropWavSum * (pMort * pWaveMort)) + (largePropTimeoutSum * pMort); //put the dead in e=0 in the next time step
+            smallFreqDist[0][tideIndex][0][timeIndex] += (smallPropForSum * pMort) + (smallPropWavSum * (pMort * pWaveMort)) + (smallPropTimeoutSum * pMort); //put the dead in e=0 in the next time step
 
-            double propAliveNonTimeout = 0.0;
-            double propAliveTimeout = 0.0;
+
+            double largePropAliveNonTimeout = 0.0;
+            double smallPropAliveNonTimeout = 0.0;
+
+            double largePropAliveTimeout = 0.0;
+            double smallPropAliveTimeout = 0.0;
+
             for(int e = 0; e < eMax; e++)
             {
-                propAliveNonTimeout += freqDist[0][tide][e][t];
+                largePropAliveNonTimeout += largeFreqDist[0][tide][e][t];
+                smallPropAliveNonTimeout += smallFreqDist[0][tide][e][t];
+
                 if(postMatingTimeout == true)
                 {
-                    propAliveTimeout += freqDist[1][tide][e][t];
+                    largePropAliveTimeout += largeFreqDist[1][tide][e][t];
+                    smallPropAliveTimeout += smallFreqDist[1][tide][e][t];
+
                 }
             }
 
             for(int e = 0; e<eMax; e++) //rescale the next timestep so that it is a proportion of those alive
             {
-                freqDist[0][tideIndex][e][t] = (freqDist[0][tideIndex][e][t]/propAliveNonTimeout);
+                largeFreqDist[0][tideIndex][e][t] = (largeFreqDist[0][tideIndex][e][t]/largePropAliveNonTimeout);
+                smallFreqDist[0][tideIndex][e][t] = (smallFreqDist[0][tideIndex][e][t]/smallPropAliveNonTimeout);
 
                 if(postMatingTimeout == true)
                 {
-                    freqDist[1][tideIndex][e][t] = (freqDist[1][tideIndex][e][t]/propAliveTimeout);
+                    largeFreqDist[1][tideIndex][e][t] = (largeFreqDist[1][tideIndex][e][t]/largePropAliveTimeout);
+                    smallFreqDist[1][tideIndex][e][t] = (smallFreqDist[1][tideIndex][e][t]/smallPropAliveTimeout);
                 }
             }
 
@@ -212,9 +258,13 @@ ArrayContainer* Markov(int counter,
     }
     ArrayContainer* masterArray = new ArrayContainer();
 
-    masterArray->array1 = freqDist;
-    masterArray->array2 = pMate;
-    masterArray->array3 = Rt;
+    masterArray->array1 = largeFreqDist;
+    masterArray->array2 = largePMate;
+    masterArray->array3 = phiLargeWav;
+
+    masterArray->array4 = smallFreqDist;
+    masterArray->array5 = smallPMate;
+    masterArray->array6 = phiSmallWav;
 
     return masterArray;
 }

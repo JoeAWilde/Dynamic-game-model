@@ -32,10 +32,14 @@ const int n                        = 4; //max energy gain from foraging
 const double p                   = 0.9; //probability of success on each trial
 
 // Mating parameters
-const double alpha               = 0.3; //parameters controlling the relationship between rivals waving and probability of mating
+const double theta               = 0.3; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                   = 0.1; //same as above
 const double pFemMax            = 0.05;
 const double pFemMin          = 0.0001;
+
+//Two morphs parameters
+const double q                   = 0.5;
+const double alpha              = 0.25;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -44,12 +48,14 @@ const double slp2                = 0.8;
 const double slp3               = -1.3; */
 
 // Strategy and updating parameters
-const double error               = 0.07; //McNamara error function steepness
+const double error              = 0.07; //McNamara error function steepness
 const double lam                 = 0.4; //how much the strategy updates by
 const double countMax         = 200000; //maximum number of iterations allowed
 int counter                        = 0; //loop counter
-double maxDiffStrat              = 1.0; //set the starting difference in strategy to be large to get the loop going
-double maxDiffFit                = 1.0; //set the starting difference in fitness to be large to get the loop going
+double largeMaxDiffStrat         = 1.0; //set the starting difference in strategy to be large to get the loop going
+double smallMaxDiffStrat         = 1.0;
+double largeMaxDiffFit           = 1.0; //set the starting difference in fitness to be large to get the loop going
+double smallMaxDiffFit           = 1.0; //set the starting difference in fitness to be large to get the loop going
 std::stringstream              outfile; //outputting files
 
 // Lists
@@ -57,16 +63,6 @@ double binom                        [n+1]; //probability of kth reward from bino
 double HTCprob[3]     = {0.25, 0.5, 0.25}; //probability of getting each high tide cost
 double metCostProb[3] = {0.25, 0.5, 0.25}; //probability of getting each metabolic cost
 int biggestCell[2]; //looks for the biggest difference between two strategies
-
-/* const int spreadOfDead = 3;
-double deadDist[spreadOfDead] = {0.25, 0.5, 0.25};
-int lowestDeadSpread = 0;  */
-
-/* const int spreadOfDead = 31;
-double deadDist[spreadOfDead];
-const double deadMu = 25;
-const double deadSD = 15;
-const int lowestDeadSpread = deadMu - ((spreadOfDead-1)/2); */
 
 
 int main()
@@ -77,17 +73,31 @@ int main()
     //Initialise multi-dimensional arrays
 
     //Rt - holds the amount of rivals waving in each timestep
-    double **Rt = new double *[tides];
+    double **phiLargeWav = new double *[tides];
     for(int x=0; x<tides; x++)
     {
-        Rt[x] = new double [tSteps];
+        phiLargeWav[x] = new double [tSteps];
     }
 
-    //pMate - holds the probability of mating in each timestep
-    double **pMate = new double *[tides];
+    //Rt - holds the amount of rivals waving in each timestep
+    double **phiSmallWav = new double *[tides];
     for(int x=0; x<tides; x++)
     {
-        pMate[x] = new double [tSteps];
+        phiSmallWav[x] = new double [tSteps];
+    }
+
+    //largePMate - holds the probability of mating in each timestep
+    double **largePMate = new double *[tides];
+    for(int x=0; x<tides; x++)
+    {
+        largePMate[x] = new double [tSteps];
+    }
+
+    //smallPMate - holds the probability of mating in each timestep
+    double **smallPMate = new double *[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallPMate[x] = new double [tSteps];
     }
 
     //pFemMaxList - holds the maximum number of females in each timestep
@@ -104,143 +114,281 @@ int main()
         pFemMinList[x] = new double [tSteps];
     }
 
-    double **phiDead = new double *[tides];
+    double **largePhiDead = new double *[tides];
     for(int x=0; x<tides; x++)
     {
-        phiDead[x] = new double [tSteps];
+        largePhiDead[x] = new double [tSteps];
     }
 
-    double **phiMate = new double *[tides];
+    double **smallPhiDead = new double *[tides];
     for(int x=0; x<tides; x++)
     {
-        phiMate[x] = new double [tSteps];
+        smallPhiDead[x] = new double [tSteps];
     }
 
-    //Resident strategy array - holds the resident strategy for each energy level and timestep
-    double ***resiStrategy = new double **[tides];
+    double **largePhiMate = new double *[tides];
     for(int x=0; x<tides; x++)
     {
-        resiStrategy[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largePhiMate[x] = new double [tSteps];
+    }
+
+    double **smallPhiMate = new double *[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallPhiMate[x] = new double [tSteps];
+    }
+
+    //Large resident strategy array - holds the resident strategy for each energy level and timestep
+    double ***largeResiStrategy = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        largeResiStrategy[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            resiStrategy[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeResiStrategy[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    
+    //Resident strategy array - holds the resident strategy for each energy level and timestep
+    double ***smallResiStrategy = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallResiStrategy[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallResiStrategy[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Best response strategy array - holds the best response strategy for each energy level and timestep
-    double ***BRstrategy = new double **[tides];
+    double ***largeBRstrategy = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        BRstrategy[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeBRstrategy[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            BRstrategy[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeBRstrategy[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Best response strategy array - holds the best response strategy for each energy level and timestep
+    double ***smallBRstrategy = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallBRstrategy[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallBRstrategy[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Best response timeout fitness array - holds the fitness of those in timeout in the best response strategy for each energy level and timestep
-    double ***timeoutFitness = new double **[tides];
+    double ***largeTimeoutFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        timeoutFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeTimeoutFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            timeoutFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeTimeoutFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
-
-    //Resident timeout fitness array - holds the fitness of those in timeout in the resident strategy for each energy level and timestep
-    double ***resiTimeoutFitness = new double **[tides];
+    //Best response timeout fitness array - holds the fitness of those in timeout in the best response strategy for each energy level and timestep
+    double ***smallTimeoutFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        resiTimeoutFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        smallTimeoutFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            resiTimeoutFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            smallTimeoutFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Resident timeout fitness array - holds the fitness of those in timeout in the resident strategy for each energy level and timestep
+    double ***largeResiTimeoutFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        largeResiTimeoutFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            largeResiTimeoutFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Resident timeout fitness array - holds the fitness of those in timeout in the resident strategy for each energy level and timestep
+    double ***smallResiTimeoutFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallResiTimeoutFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallResiTimeoutFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Best response waving fitness array - holds the fitness of waving in the best response strategy for each energy level and timestep
-    double ***waveFitness = new double **[tides];
+    double ***largeWaveFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        waveFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeWaveFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            waveFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeWaveFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Best response waving fitness array - holds the fitness of waving in the best response strategy for each energy level and timestep
+    double ***smallWaveFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallWaveFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallWaveFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Best response foraging fitness array - holds the fitness of foraging in the best response strategy for each energy level and timestep
-    double ***forFitness = new double **[tides];
+    double ***largeForFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        forFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeForFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            forFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeForFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Best response foraging fitness array - holds the fitness of foraging in the best response strategy for each energy level and timestep
+    double ***smallForFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallForFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallForFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Resident waving fitness array - holds the fitness of waving in the resident strategy for each energy level and timestep
-    double ***resiWaveFitness = new double **[tides];
+    double ***largeResiWaveFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        resiWaveFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeResiWaveFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            resiWaveFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeResiWaveFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Resident waving fitness array - holds the fitness of waving in the resident strategy for each energy level and timestep
+    double ***smallResiWaveFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallResiWaveFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallResiWaveFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Resident foraging fitness array - holds the fitness of foraging in the resident strategy for each energy level and timestep
-    double ***resiForFitness = new double **[tides];
+    double ***largeResiForFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        resiForFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeResiForFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            resiForFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeResiForFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Resident foraging fitness array - holds the fitness of foraging in the resident strategy for each energy level and timestep
+    double ***smallResiForFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallResiForFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallResiForFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Best response fitness array - holds the fitness of using the best response strategy for each energy level and timestep
-    double ***BRfitness = new double **[tides];
+    double ***largeBRfitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        BRfitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeBRfitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            BRfitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeBRfitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Best response fitness array - holds the fitness of using the best response strategy for each energy level and timestep
+    double ***smallBRfitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallBRfitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallBRfitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Resident strategy fitness array - holds the fitness of using the resident strategy for each energy level and timestep
-    double ***resiFitness = new double **[tides];
+    double ***largeResiFitness = new double **[tides];
     for(int x=0; x<tides; x++)
     {
-        resiFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        largeResiFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
         for(int i=0; i<eMax; i++) //in each of those indices
         {
-            resiFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            largeResiFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+    }
+
+    //Resident strategy fitness array - holds the fitness of using the resident strategy for each energy level and timestep
+    double ***smallResiFitness = new double **[tides];
+    for(int x=0; x<tides; x++)
+    {
+        smallResiFitness[x] = new double *[eMax];   //create a pointer that is eMax units long
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            smallResiFitness[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
         }
     }
 
     //Low tide frequency distribution - holds the proportion of the population that is at each energy level and timestep, in both timeout and non
-    double ****freqDist = new double ***[2];
+    double ****largeFreqDist = new double ***[2];
     for(int i=0; i<2; i++)
     {
-        freqDist[i] = new double **[tides];
+        largeFreqDist[i] = new double **[tides];
         for(int x=0; x<tides; x++)
         {
-            freqDist[i][x] = new double *[eMax];   //create a pointer that is eMax units long
+            largeFreqDist[i][x] = new double *[eMax];   //create a pointer that is eMax units long
             for(int e=0; e<eMax; e++) //in each of those indices
             {
-                freqDist[i][x][e] = new double[tSteps]; //make a pointer that is tSteps units long
+                largeFreqDist[i][x][e] = new double[tSteps]; //make a pointer that is tSteps units long
             }
         }
     }
+
+    double ****smallFreqDist = new double ***[2];
+    for(int i=0; i<2; i++)
+    {
+        smallFreqDist[i] = new double **[tides];
+        for(int x=0; x<tides; x++)
+        {
+            smallFreqDist[i][x] = new double *[eMax];   //create a pointer that is eMax units long
+            for(int e=0; e<eMax; e++) //in each of those indices
+            {
+                smallFreqDist[i][x][e] = new double[tSteps]; //make a pointer that is tSteps units long
+            }
+        }
+    }
+
+
 
     //Set the terminal fitness reward and set the rest as zero
     for(int tide=0; tide<tides; tide++)
@@ -251,13 +399,17 @@ int main()
             {
                 if(t==(tSteps-1) & e>0 & tide==(tides-1))
                 {          
-                    BRstrategy[tide][e][t] = 0.0;
-                    resiStrategy[tide][e][t] = 0.0;
+                    largeBRstrategy[tide][e][t] = 0.0;
+                    smallBRstrategy[tide][e][t] = 0.0;
+                    largeResiStrategy[tide][e][t] = 0.0;
+                    smallResiStrategy[tide][e][t] = 0.0;
                 }
                 else
                 {
-                    BRstrategy[tide][e][t] = 0.0;
-                    resiStrategy[tide][e][t] = 0.0;
+                    largeBRstrategy[tide][e][t] = 0.0;
+                    smallBRstrategy[tide][e][t] = 0.0;
+                    largeResiStrategy[tide][e][t] = 0.0;
+                    largeResiStrategy[tide][e][t] = 0.0;
                 }
             }
         }
@@ -300,7 +452,7 @@ int main()
 
     //START OF WHILE LOOP
 
-    while(maxDiffFit > 0.000001 && counter < countMax)
+    while(largeMaxDiffFit > 0.000001 && smallMaxDiffFit > 0.000001 && counter < countMax)
     {
         //Empty out the frequency distribution array at the start of each loop
 
@@ -308,32 +460,48 @@ int main()
         {
             for(int t=0; t<tSteps; t++)
             {
-                pMate[tide][t] = 0.0;
-                Rt[tide][t] = 0.0;
+                largePMate[tide][t] = 0.0;
+                phiLargeWav[tide][t] = 0.0;
+                phiSmallWav[tide][t] = 0.0;
 
                 for(int e=0; e<eMax; e++)
                 {
                     if(t==(tSteps-1) & e>0 & tide==(tides-1))
                     {
-                        timeoutFitness[tide][e][t] = 1.0;
-                        waveFitness[tide][e][t] = 1.0;
-                        forFitness[tide][e][t] = 1.0;
-                        BRfitness[tide][e][t] = 1.0;
-                        resiFitness[tide][e][t] = 1.0;
-                        resiTimeoutFitness[tide][e][t] = 1.0;
+                        largeTimeoutFitness[tide][e][t] = 1.0;
+                        largeWaveFitness[tide][e][t] = 1.0;
+                        largeForFitness[tide][e][t] = 1.0;
+                        largeBRfitness[tide][e][t] = 1.0;
+                        largeResiFitness[tide][e][t] = 1.0;
+                        largeResiTimeoutFitness[tide][e][t] = 1.0;
+
+                        smallTimeoutFitness[tide][e][t] = 1.0;
+                        smallWaveFitness[tide][e][t] = 1.0;
+                        smallForFitness[tide][e][t] = 1.0;
+                        smallBRfitness[tide][e][t] = 1.0;
+                        smallResiFitness[tide][e][t] = 1.0;
+                        smallResiTimeoutFitness[tide][e][t] = 1.0;
                     }else
                     {
-                        timeoutFitness[tide][e][t] = 0.0;
-                        waveFitness[tide][e][t] = 0.0;
-                        forFitness[tide][e][t] = 0.0;
-                        BRfitness[tide][e][t] = 0.0;
-                        resiFitness[tide][e][t] = 0.0;
-                        resiTimeoutFitness[tide][e][t] = 0.0;
+                        largeTimeoutFitness[tide][e][t] = 0.0;
+                        largeWaveFitness[tide][e][t] = 0.0;
+                        largeForFitness[tide][e][t] = 0.0;
+                        largeBRfitness[tide][e][t] = 0.0;
+                        largeResiFitness[tide][e][t] = 0.0;
+                        largeResiTimeoutFitness[tide][e][t] = 0.0;
+
+                        smallTimeoutFitness[tide][e][t] = 0.0;
+                        smallWaveFitness[tide][e][t] = 0.0;
+                        smallForFitness[tide][e][t] = 0.0;
+                        smallBRfitness[tide][e][t] = 0.0;
+                        smallResiFitness[tide][e][t] = 0.0;
+                        smallResiTimeoutFitness[tide][e][t] = 0.0;
                     }
 
                     for(int i=0; i<2; i++)
                     {
-                        freqDist[i][tide][e][t] = 0.0;
+                        largeFreqDist[i][tide][e][t] = 0.0;
+                        smallFreqDist[i][tide][e][t] = 0.0;
                     }
                 }
             }
@@ -342,7 +510,8 @@ int main()
         //If we're at the very start, set the arbitrary starting strategy
         if(counter==0)
         {
-            resiStrategy = StartingStrat(resiStrategy, tides, eMax, tSteps);
+            largeResiStrategy = StartingStrat(largeResiStrategy, tides, eMax, tSteps);
+            smallResiStrategy = StartingStrat(smallResiStrategy, tides, eMax, tSteps);
         }
 
         //Call the Markov function to fill out the population frequency distributions
@@ -356,23 +525,34 @@ int main()
                                                 n,
                                                 stochasticHTcost,
                                                 b, 
-                                                alpha, 
+                                                theta, 
                                                 ptau,
                                                 postMatingTimeout,     
                                                 binom,
-                                                Rt,
-                                                pMate,
+                                                phiLargeWav,
+                                                phiSmallWav,
+                                                largePMate,
+                                                smallPMate,
                                                 pFemMaxList, 
                                                 pFemMinList,
                                                 HTCprob,
-                                                resiStrategy, 
-                                                freqDist,
+                                                largeResiStrategy, 
+                                                smallResiStrategy,
+                                                largeFreqDist,
+                                                smallFreqDist,
+                                                q,
+                                                alpha,
                                                 pMort, 
                                                 pWaveMort);
 
         //Save the output of the above function
-        freqDist = markovOutput->array1;
-        pMate = markovOutput->array2;
+        largeFreqDist = markovOutput->array1;
+        largePMate = markovOutput->array2;
+        phiLargeWav = markovOutput->array3;
+
+        smallFreqDist = markovOutput->array4;
+        smallPMate = markovOutput->array5;
+        phiSmallWav = markovOutput->array6;
 
         //Work backwards through the low tide period, cycling through each energy level per time step
         for(int tide=(tides-1); tide>=0; tide--)
@@ -392,16 +572,19 @@ int main()
                 {
                     if(t == tSteps-1 & tide != tides-1) //if in the final timestep of any but the last tide
                     {
-                        //std::cout << "before BRfit final timestep = " << BRfitness[tides-1][e][tSteps-1] << std::endl;
-                        //std::cout << "BRfit before = " << BRfitness[tide][e][t] << "\n";
-                        BRfitness[tide][e][t] = HighTide(tides, tide, e, BRfitness, HTCprob, HTcost, stochasticHTcost);
-                        //std::cout << "BRfit after = " << BRfitness[tide][e][t] << "\n\n";
-                        resiFitness[tide][e][t] = HighTide(tides, tide, e, resiFitness, HTCprob, HTcost, stochasticHTcost);
+                        largeBRfitness[tide][e][t] = HighTide(tides, tide, e, largeBRfitness, HTCprob, HTcost, stochasticHTcost);
+                        smallBRfitness[tide][e][t] = HighTide(tides, tide, e, smallBRfitness, HTCprob, HTcost, stochasticHTcost);
+
+                        largeResiFitness[tide][e][t] = HighTide(tides, tide, e, largeResiFitness, HTCprob, HTcost, stochasticHTcost);
+                        smallResiFitness[tide][e][t] = HighTide(tides, tide, e, smallResiFitness, HTCprob, HTcost, stochasticHTcost);
 
                         if(postMatingTimeout == true)
                         {
-                            timeoutFitness[tide][e][t] = HighTide(tides, tide, e, timeoutFitness, HTCprob, HTcost, stochasticHTcost);
-                            resiTimeoutFitness[tide][e][t] = HighTide(tides, tide, e, resiTimeoutFitness, HTCprob, HTcost, stochasticHTcost);
+                            largeTimeoutFitness[tide][e][t] = HighTide(tides, tide, e, largeTimeoutFitness, HTCprob, HTcost, stochasticHTcost);
+                            smallTimeoutFitness[tide][e][t] = HighTide(tides, tide, e, smallTimeoutFitness, HTCprob, HTcost, stochasticHTcost);
+
+                            largeResiTimeoutFitness[tide][e][t] = HighTide(tides, tide, e, largeResiTimeoutFitness, HTCprob, HTcost, stochasticHTcost);
+                            smallResiTimeoutFitness[tide][e][t] = HighTide(tides, tide, e, smallResiTimeoutFitness, HTCprob, HTcost, stochasticHTcost);
                         }
                     }
                     else //if we're not in the final timestep of a tide
@@ -409,59 +592,84 @@ int main()
                         if(postMatingTimeout == true)
                         {
                             //std::cout << "postMatingTimeout fitness for other timesteps\n";
-                            timeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, timeoutFitness, BRfitness, ptau, pMort);
-                            resiTimeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, resiTimeoutFitness, resiFitness, ptau, pMort);
+                            largeTimeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, largeTimeoutFitness, largeBRfitness, ptau, pMort);
+                            smallTimeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, smallTimeoutFitness, smallBRfitness, ptau, pMort);
+
+                            largeResiTimeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, largeResiTimeoutFitness, largeResiFitness, ptau, pMort);
+                            smallResiTimeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, smallResiTimeoutFitness, smallResiFitness, ptau, pMort);
+
                         }
                         
-                        waveFitness[tide][e][t] = WaveFitness(tide, t, e, timeoutFitness, BRfitness, waveCost, metCostProb, pMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
-                        forFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, BRfitness, n, binom, pMort, metCostProb);
+                        largeWaveFitness[tide][e][t] = WaveFitness(tide, t, e, largeTimeoutFitness, largeBRfitness, waveCost, metCostProb, largePMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
+                        smallWaveFitness[tide][e][t] = WaveFitness(tide, t, e, smallTimeoutFitness, smallBRfitness, waveCost, metCostProb, smallPMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
 
-                        resiWaveFitness[tide][e][t] = WaveFitness(tide, t, e, resiTimeoutFitness, resiFitness, waveCost, metCostProb, pMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
-                        resiForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, resiFitness, n, binom, pMort, metCostProb);
+                        largeForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, largeBRfitness, n, binom, pMort, metCostProb);
+                        smallForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, smallBRfitness, n, binom, pMort, metCostProb);
+
+                        largeResiWaveFitness[tide][e][t] = WaveFitness(tide, t, e, largeResiTimeoutFitness, largeResiFitness, waveCost, metCostProb, largePMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
+                        smallResiWaveFitness[tide][e][t] = WaveFitness(tide, t, e, smallResiTimeoutFitness, smallResiFitness, waveCost, metCostProb, smallPMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
+
+                        largeResiForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, largeResiFitness, n, binom, pMort, metCostProb);
+                        smallResiForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, smallResiFitness, n, binom, pMort, metCostProb);
 
 
-                        double fitDiff = forFitness[tide][e][t] - waveFitness[tide][e][t];
-                        double fitDiffErr = fitDiff/error;
-                        double exponent = exp(fitDiffErr);
-                        double exponentPlusOne = exponent + 1;
-                        BRstrategy[tide][e][t] = 1/exponentPlusOne;
+                        double largeFitDiff = largeForFitness[tide][e][t] - largeWaveFitness[tide][e][t];
+                        double largeFitDiffErr = largeFitDiff/error;
+                        double largeExponent = exp(largeFitDiffErr);
+                        double largeExponentPlusOne = largeExponent + 1;
+                        largeBRstrategy[tide][e][t] = 1/largeExponentPlusOne;
 
-                        //std::cout << "BRfit before = " << BRfitness[tide][e][t] << "\n";
+                        double smallFitDiff = smallForFitness[tide][e][t] - smallWaveFitness[tide][e][t];
+                        double smallFitDiffErr = smallFitDiff/error;
+                        double smallExponent = exp(smallFitDiffErr);
+                        double smallExponentPlusOne = smallExponent + 1;
+                        smallBRstrategy[tide][e][t] = 1/smallExponentPlusOne;
 
-                        BRfitness[tide][e][t] = (BRstrategy[tide][e][t] * waveFitness[tide][e][t]) + ((1-BRstrategy[tide][e][t]) * forFitness[tide][e][t]);
+                        largeBRfitness[tide][e][t] = (largeBRstrategy[tide][e][t] * largeWaveFitness[tide][e][t]) + ((1-largeBRstrategy[tide][e][t]) * largeForFitness[tide][e][t]);
+                        smallBRfitness[tide][e][t] = (smallBRstrategy[tide][e][t] * smallWaveFitness[tide][e][t]) + ((1-smallBRstrategy[tide][e][t]) * smallForFitness[tide][e][t]);
 
-                        //std::cout << "BRfit after = " << BRfitness[tide][e][t] << "\n\n";
-
-                        resiFitness[tide][e][t] = (resiStrategy[tide][e][t] * resiWaveFitness[tide][e][t]) + ((1-resiStrategy[tide][e][t]) * resiForFitness[tide][e][t]);
+                        largeResiFitness[tide][e][t] = (largeResiStrategy[tide][e][t] * largeResiWaveFitness[tide][e][t]) + ((1-largeResiStrategy[tide][e][t]) * largeResiForFitness[tide][e][t]);
+                        smallResiFitness[tide][e][t] = (smallResiStrategy[tide][e][t] * smallResiWaveFitness[tide][e][t]) + ((1-smallResiStrategy[tide][e][t]) * smallResiForFitness[tide][e][t]);
 
                     }
                 }
             }
         }
-        maxDiffStrat = 0.0;
-        maxDiffFit = 0.0;
+        largeMaxDiffStrat = 0.0;
+        smallMaxDiffStrat = 0.0;
+
+        largeMaxDiffFit = 0.0;
+        smallMaxDiffFit = 0.0;
+
         for(int tide=0; tide<tides; tide++)
         {
             for(int t=0; t<(tSteps-1); t++)
             {
                 for(int e=1; e<eMax; e++)
                 {
-                    double diffStrat = abs(BRstrategy[tide][e][t] - resiStrategy[tide][e][t]);
-                    double diffFit = abs(BRfitness[tide][e][t] - resiFitness[tide][e][t]);
-                    //std::cout << "diffFit = " << diffFit << "\n";
-                    //std::cout << "resiFit = " << resiFitness[tide][e][t] << "\n" << "BRfit = " << BRfitness[tide][e][t] << "\n\n";
+                    double largeDiffStrat = abs(largeBRstrategy[tide][e][t] - largeResiStrategy[tide][e][t]);
+                    double smallDiffStrat = abs(smallBRstrategy[tide][e][t] - smallResiStrategy[tide][e][t]);
 
-                    if(diffStrat>maxDiffStrat)
+                    double largeDiffFit = abs(largeBRfitness[tide][e][t] - largeResiFitness[tide][e][t]);
+                    double smallDiffFit = abs(smallBRfitness[tide][e][t] - smallResiFitness[tide][e][t]);
+
+
+                    if(largeDiffStrat > largeMaxDiffStrat)
                     {
-                        maxDiffStrat = diffStrat;
-                        
+                        largeMaxDiffStrat = largeDiffStrat;   
                     }
-                    if(diffFit>maxDiffFit)
+                    if(smallDiffStrat > smallMaxDiffStrat)
                     {
-                        maxDiffFit = diffFit;
-                        biggestCell[0] = e;
-                        biggestCell[1] = t;
-                        //std::cout << "biggestCell[e,t] = " << biggestCell[0] << " ," << biggestCell[1] << "\n";
+                        smallMaxDiffStrat = smallDiffStrat;   
+                    }
+
+                    if(largeDiffFit > largeMaxDiffFit)
+                    {
+                        largeMaxDiffFit = largeDiffFit;
+                    }
+                    if(smallDiffFit > smallMaxDiffFit)
+                    {
+                        smallMaxDiffFit = smallDiffFit;
                     }
                 }
             }
@@ -472,24 +680,27 @@ int main()
             {
                 for(int e=0; e<eMax; e++)
                 {
-                    resiStrategy[tide][e][t] = (lam * BRstrategy[tide][e][t]) + ((1-lam) * resiStrategy[tide][e][t]);
+                    largeResiStrategy[tide][e][t] = (lam * largeBRstrategy[tide][e][t]) + ((1-lam) * largeResiStrategy[tide][e][t]);
+                    smallResiStrategy[tide][e][t] = (lam * smallBRstrategy[tide][e][t]) + ((1-lam) * smallResiStrategy[tide][e][t]);
                 }
             }
         }
         counter++;
 
         if(counter % 10 == 0){
-            std::cout << "counter = " << counter << ", maxDiffFit = " << maxDiffFit << "\n";
             auto timeNow = std::chrono::system_clock::now();
+
+            std::cout << "counter = " << counter << ", largeMaxDiffFit = " << largeMaxDiffFit << "\n";
+            std::cout << "smallMaxDiffFit = " << smallMaxDiffFit << "\n";
+
             std::chrono::duration<double> elapsed_seconds = timeNow-start;
             std::time_t end_time = std::chrono::system_clock::to_time_t(timeNow);
             std::cout << "elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n\n";
-            //std::cout << "BRstrat[50][1] = " << BRstrategy[50][1] << "\n\n";
         }
     } //end of while loop
-
-    std::cout << " final counter = " << counter << ", final maxDiffFit = " << maxDiffFit << "\n";
     auto timeNow = std::chrono::system_clock::now();
+    std::cout << " final counter = " << counter << ", final largeMaxDiffFit = " << largeMaxDiffFit << "\n";
+    std::cout << " final smallMaxDiffFit = " << largeMaxDiffFit << "\n";
     std::chrono::duration<double> elapsed_seconds = timeNow-start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(timeNow);
     std::cout << " total elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n";
@@ -503,12 +714,14 @@ int main()
             {
                 for(int t=0; t<tSteps; t++)
                 {
-                    freqDist[i][tide][e][t] = 0.0;
+                    largeFreqDist[i][tide][e][t] = 0.0;
+                    smallFreqDist[i][tide][e][t] = 0.0;
                 }
             }
         }
     }
-    freqDist[0][0][(eMax-1)/2][0] = 1.0;
+    largeFreqDist[0][0][(eMax-1)/2][0] = q;
+    smallFreqDist[0][0][(eMax-1)/2][0] = (1-q);
 
     ArrayContainer *markovOutput2 =  Markov(counter,
                                                 tides,
@@ -520,31 +733,41 @@ int main()
                                                 n,
                                                 stochasticHTcost,
                                                 b, 
-                                                alpha, 
+                                                theta, 
                                                 ptau,
                                                 postMatingTimeout,     
                                                 binom,
-                                                Rt,
-                                                pMate,
+                                                phiLargeWav,
+                                                phiSmallWav,
+                                                largePMate,
+                                                smallPMate,
                                                 pFemMaxList, 
                                                 pFemMinList,
                                                 HTCprob,
-                                                resiStrategy, 
-                                                freqDist,
-                                                pMort,
+                                                largeResiStrategy, 
+                                                smallResiStrategy,
+                                                largeFreqDist,
+                                                smallFreqDist,
+                                                q,
+                                                alpha,
+                                                pMort, 
                                                 pWaveMort);
 
-    freqDist = markovOutput2->array1;
-    pMate = markovOutput2->array2;
-    Rt = markovOutput2->array3;
+    largeFreqDist = markovOutput2->array1;
+    largePMate = markovOutput2->array2;
+    phiLargeWav = markovOutput2->array3;
 
-    std::ofstream BRstratOut;
-    std::ostringstream BRstratOutFilename;
-    BRstratOutFilename << "output_files/BRstrat.txt"; 
-    BRstratOut.open (BRstratOutFilename.str());
+    smallFreqDist = markovOutput2->array4;
+    smallPMate = markovOutput2->array5;
+    phiSmallWav = markovOutput2->array6;
+
+    std::ofstream largeBRstratOut;
+    std::ostringstream largeBRstratOutFilename;
+    largeBRstratOutFilename << "output_files/largeBRstrat.txt"; 
+    largeBRstratOut.open (largeBRstratOutFilename.str());
     for(int e=0; e<eMax; e++)
     {
-        BRstratOut << BRstrategy[0][e][0];
+        largeBRstratOut << largeBRstrategy[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -558,21 +781,21 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                BRstratOut << "," << BRstrategy[tide][e][t];
+                largeBRstratOut << "," << largeBRstrategy[tide][e][t];
             }
-            BRstratOut << "," << "HT";
+            largeBRstratOut << "," << "HT";
         }
-        BRstratOut << std::endl;
+        largeBRstratOut << std::endl;
     }
-    BRstratOut.close();
+    largeBRstratOut.close();
 
-    std::ofstream resiStratOut;
-    std::ostringstream resiStratOutFilename;
-    resiStratOutFilename << "output_files/resiStrat.txt"; 
-    resiStratOut.open (resiStratOutFilename.str());
+    std::ofstream largeResiStratOut;
+    std::ostringstream largeResiStratOutFilename;
+    largeResiStratOutFilename << "output_files/largeResiStrat.txt"; 
+    largeResiStratOut.open (largeResiStratOutFilename.str());
     for(int e=0; e<eMax; e++)
     {
-        resiStratOut << resiStrategy[0][e][0];
+        largeResiStratOut << largeResiStrategy[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -586,22 +809,22 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                resiStratOut << "," << resiStrategy[tide][e][t];
+                largeResiStratOut << "," << largeResiStrategy[tide][e][t];
             }
-            resiStratOut << "," << "HT";
+            largeResiStratOut << "," << "HT";
         }
-        resiStratOut << std::endl;
+        largeResiStratOut << std::endl;
     }
-    resiStratOut.close();
+    largeResiStratOut.close();
 
 
-    std::ofstream freqDistOut;
-    outfile.str("output_files/freqDist.txt");
-    std::string freqDistOutFilename = outfile.str();
-    freqDistOut.open (freqDistOutFilename.c_str());
+    std::ofstream largeFreqDistOut;
+    outfile.str("output_files/largeFreqDist.txt");
+    std::string largeFreqDistOutFilename = outfile.str();
+    largeFreqDistOut.open (largeFreqDistOutFilename.c_str());
         for(int e=0; e<eMax; e++)
         {
-            freqDistOut << freqDist[0][0][e][0];
+            largeFreqDistOut << largeFreqDist[0][0][e][0];
             for(int tide=0; tide<tides; tide++)
             {
                 int tStart;
@@ -615,21 +838,21 @@ int main()
                 }
                 for(int t=tStart; t<tSteps; t++)
                 {
-                    freqDistOut << "," << freqDist[0][tide][e][t];
+                    largeFreqDistOut << "," << largeFreqDist[0][tide][e][t];
                 }
-                freqDistOut << "," << "HT";
+                largeFreqDistOut << "," << "HT";
             }
-            freqDistOut << std::endl;
+            largeFreqDistOut << std::endl;
         }
-    freqDistOut.close(); 
+    largeFreqDistOut.close(); 
 
-    std::ofstream freqDistTimeout;
-    outfile.str("output_files/freqDistTimeout.txt");
-    std::string freqDistTimeoutFilename = outfile.str();
-    freqDistTimeout.open (freqDistTimeoutFilename.c_str());
+    std::ofstream largeFreqDistTimeout;
+    outfile.str("output_files/largeFreqDistTimeout.txt");
+    std::string largeFreqDistTimeoutFilename = outfile.str();
+    largeFreqDistTimeout.open (largeFreqDistTimeoutFilename.c_str());
         for(int e=0; e<eMax; e++)
         {
-            freqDistTimeout << freqDist[1][0][e][0];
+            largeFreqDistTimeout << largeFreqDist[1][0][e][0];
             for(int tide=0; tide<tides; tide++)
             {
                 int tStart;
@@ -643,21 +866,21 @@ int main()
                 }
                 for(int t=tStart; t<tSteps; t++)
                 {
-                    freqDistTimeout << "," << freqDist[1][tide][e][t];
+                    largeFreqDistTimeout << "," << largeFreqDist[1][tide][e][t];
                 }
-                freqDistTimeout << "," << "HT";
+                largeFreqDistTimeout << "," << "HT";
             }
-            freqDistTimeout << std::endl;
+            largeFreqDistTimeout << std::endl;
         }
-    freqDistTimeout.close(); 
+    largeFreqDistTimeout.close(); 
 
-    std::ofstream waveFit;
-    outfile.str("output_files/waveFit.txt");
-    std::string waveFitFilename = outfile.str();
-    waveFit.open (waveFitFilename.c_str());
+    std::ofstream largeWaveFit;
+    outfile.str("output_files/largeWaveFit.txt");
+    std::string largeWaveFitFilename = outfile.str();
+    largeWaveFit.open (largeWaveFitFilename.c_str());
     for(int e=0; e<eMax; e++)
     {
-        waveFit << waveFitness[0][e][0];
+        largeWaveFit << largeWaveFitness[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -671,21 +894,21 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                waveFit << "," << waveFitness[tide][e][t];
+                largeWaveFit << "," << largeWaveFitness[tide][e][t];
             }
-            waveFit << "," << "HT";
+            largeWaveFit << "," << "HT";
         }
-        waveFit << std::endl;
+        largeWaveFit << std::endl;
     }
-    waveFit.close(); 
+    largeWaveFit.close(); 
 
-    std::ofstream forFit;
-    outfile.str("output_files/forFit.txt");
-    std::string forFitFilename = outfile.str();
-    forFit.open (forFitFilename.c_str());
+    std::ofstream largeForFit;
+    outfile.str("output_files/largeForFit.txt");
+    std::string largeForFitFilename = outfile.str();
+    largeForFit.open (largeForFitFilename.c_str());
     for(int e=0; e<eMax; e++)
     {
-        forFit << forFitness[0][e][0];
+        largeForFit << largeForFitness[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -699,21 +922,21 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                forFit << "," << forFitness[tide][e][t];
+                largeForFit << "," << largeForFitness[tide][e][t];
             }
-            forFit << "," << "HT";
+            largeForFit << "," << "HT";
         }
-        forFit << std::endl;
+        largeForFit << std::endl;
     }   
-    forFit.close();
+    largeForFit.close();
 
-    std::ofstream BRFit;
-    outfile.str("output_files/BRFit.txt");
-    std::string BRFitFilename = outfile.str();
-    BRFit.open (BRFitFilename.c_str());
+    std::ofstream largeBRFit;
+    outfile.str("output_files/largeBRFit.txt");
+    std::string largeBRFitFilename = outfile.str();
+    largeBRFit.open (largeBRFitFilename.c_str());
     for(int e=0; e<eMax; e++)
     {
-        BRFit << BRfitness[0][e][0];
+        largeBRFit << largeBRfitness[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -727,21 +950,21 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                BRFit << "," << BRfitness[tide][e][t];
+                largeBRFit << "," << largeBRfitness[tide][e][t];
             }
-            BRFit << "," << "HT";
+            largeBRFit << "," << "HT";
         }
-        BRFit << std::endl;
+        largeBRFit << std::endl;
     }
-    BRFit.close(); 
+    largeBRFit.close(); 
 
-    std::ofstream ResiFit;
-    outfile.str("output_files/ResiFit.txt");
-    std::string ResiFitFilename = outfile.str();
-    ResiFit.open (ResiFitFilename.c_str());
+    std::ofstream largeResiFit;
+    outfile.str("output_files/largeResiFit.txt");
+    std::string largeResiFitFilename = outfile.str();
+    largeResiFit.open (largeResiFitFilename.c_str());
     for(int e=0; e<eMax; e++)
     {
-        ResiFit << resiFitness[0][e][0];
+        largeResiFit << largeResiFitness[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -755,21 +978,21 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                ResiFit << "," << resiFitness[tide][e][t];
+                largeResiFit << "," << largeResiFitness[tide][e][t];
             }
-            ResiFit << "," << "HT";
+            largeResiFit << "," << "HT";
         }
-        ResiFit << std::endl;
+        largeResiFit << std::endl;
     }
-    ResiFit.close(); 
+    largeResiFit.close(); 
 
-    std::ofstream TimeoutFit;
-    outfile.str("output_files/timeoutFit.txt");
-    std::string TimeoutFitFilename = outfile.str();
-    TimeoutFit.open (TimeoutFitFilename.c_str());
+    std::ofstream largeTimeoutFit;
+    outfile.str("output_files/largeTimeoutFit.txt");
+    std::string largeTimeoutFitFilename = outfile.str();
+    largeTimeoutFit.open (largeTimeoutFitFilename.c_str());
     for(int e=0; e<eMax; e++)
     {
-        TimeoutFit << timeoutFitness[0][e][0];
+        largeTimeoutFit << largeTimeoutFitness[0][e][0];
         for(int tide=0; tide<tides; tide++)
         {
             int tStart;
@@ -783,19 +1006,19 @@ int main()
             }
             for(int t=tStart; t<tSteps; t++)
             {
-                TimeoutFit << "," << timeoutFitness[tide][e][t];
+                largeTimeoutFit << "," << largeTimeoutFitness[tide][e][t];
             }
-            TimeoutFit << "," << "HT";
+            largeTimeoutFit << "," << "HT";
         }
-        TimeoutFit << std::endl;
+        largeTimeoutFit << std::endl;
     }
-    TimeoutFit.close(); 
+    largeTimeoutFit.close(); 
 
-    std::ofstream pMateOut;
-    outfile.str("output_files/finalpMate.txt");
-    std::string pMateFilename = outfile.str();
-    pMateOut.open(pMateFilename.c_str());
-    pMateOut << pMate[0][0] << ",";
+    std::ofstream largePMateOut;
+    outfile.str("output_files/largeFinalpMate.txt");
+    std::string largePMateFilename = outfile.str();
+    largePMateOut.open(largePMateFilename.c_str());
+    largePMateOut << largePMate[0][0] << ",";
     for(int tide=0; tide<tides; tide++)
     {
         int tStart;
@@ -809,17 +1032,17 @@ int main()
         }
         for(int t=tStart; t<tSteps; t++)
         {
-            pMateOut << pMate[tide][t] << ",";
+        largePMateOut << largePMate[tide][t] << ",";
         }
-        pMateOut << "," << "HT" << ",";
+        largePMateOut << "," << "HT" << ",";
     }
-    pMateOut.close();
+    largePMateOut.close();
 
-    std::ofstream RtOut;
-    outfile.str("output_files/finalRt.txt");
-    std::string RtFilename = outfile.str();
-    RtOut.open(RtFilename.c_str());
-    RtOut << Rt[0][0] << ",";
+    std::ofstream phiLargeWavOut;
+    outfile.str("output_files/phiLargeWav.txt");
+    std::string phiLargeWavFilename = outfile.str();
+    phiLargeWavOut.open(phiLargeWavFilename.c_str());
+    phiLargeWavOut << phiLargeWav[0][0] << ",";
     for(int tide=0; tide<tides; tide++)
     {
         int tStart;
@@ -833,35 +1056,31 @@ int main()
         }
         for(int t=tStart; t<tSteps; t++)
         {
-            RtOut << Rt[tide][t] << ",";
+            phiLargeWavOut << phiLargeWav[tide][t] << ",";
         }
-        RtOut << "," << "HT" << ",";
+        phiLargeWavOut << "," << "HT" << ",";
     }
-    RtOut.close();
+    phiLargeWavOut.close();
 
-    double propNotDead;
 
     for(int tide = 0; tide < tides; tide++)
     {
         for(int t = 0; t< tSteps; t++)
         {
-            phiDead[tide][t] = freqDist[0][tide][0][t] + freqDist[1][tide][0][t];
+            largePhiDead[tide][t] = largeFreqDist[0][tide][0][t];
 
-            propNotDead = 0.0;
-            for(int e = 1; e < eMax; e++)
+            if(postMatingTimeout == true)
             {
-                propNotDead += freqDist[0][tide][e][t] + freqDist[1][tide][e][t];
+                largePhiDead[tide][t] += largeFreqDist[1][tide][0][t];
             }
-
-            phiDead[tide][t] += propNotDead * pMort;
         }
     }
 
-    std::ofstream phiDeadOut;
-    outfile.str("output_files/phiDead.txt");
-    std::string phiDeadFilename = outfile.str();
-    phiDeadOut.open(phiDeadFilename.c_str());
-    phiDeadOut << Rt[0][0] << ",";
+    std::ofstream largePhiDeadOut;
+    outfile.str("output_files/largePhiDead.txt");
+    std::string largePhiDeadFilename = outfile.str();
+    largePhiDeadOut.open(largePhiDeadFilename.c_str());
+    largePhiDeadOut << largePhiDead[0][0] << ",";
     for(int tide=0; tide<tides; tide++)
     {
         int tStart;
@@ -875,31 +1094,31 @@ int main()
         }
         for(int t=tStart; t<tSteps; t++)
         {
-            phiDeadOut << phiDead[tide][t] << ",";
+            largePhiDeadOut << largePhiDead[tide][t] << ",";
         }
-        phiDeadOut << "," << "HT" << ",";
+        largePhiDeadOut << "," << "HT" << ",";
     }
-    phiDeadOut.close();
+    largePhiDeadOut.close();
 
-    double propMating;
+    double propLargeMating;
     for(int tide = 0; tide < tides; tide++)
     {
         for(int t = 0; t < tSteps; t++)
         {
-            propMating = 0;
+            propLargeMating = 0;
             for(int e = 0; e < eMax; e++)
             {
-                propMating += freqDist[0][tide][e][t] * BRstrategy[tide][e][t] * pMate[tide][t];
+                propLargeMating += largeFreqDist[0][tide][e][t] * largeBRstrategy[tide][e][t] * largePMate[tide][t];
             }
-            phiMate[tide][t] = propMating;
+            largePhiMate[tide][t] = propLargeMating;
         }
     }
 
-    std::ofstream phiMateOut;
-    outfile.str("output_files/phiMate.txt");
-    std::string phiMateFilename = outfile.str();
-    phiMateOut.open(phiMateFilename.c_str());
-    phiMateOut << Rt[0][0] << ",";
+    std::ofstream largePhiMateOut;
+    outfile.str("output_files/largePhiMate.txt");
+    std::string largePhiMateFilename = outfile.str();
+    largePhiMateOut.open(largePhiMateFilename.c_str());
+    largePhiMateOut << largePhiMate[0][0] << ",";
     for(int tide=0; tide<tides; tide++)
     {
         int tStart;
@@ -913,10 +1132,390 @@ int main()
         }
         for(int t=tStart; t<tSteps; t++)
         {
-            phiMateOut << phiMate[tide][t] << ",";
+            largePhiMateOut << largePhiMate[tide][t] << ",";
         }
-        phiMateOut << "," << "HT" << ",";
+        largePhiMateOut << "," << "HT" << ",";
     }
-    phiMateOut.close();
+    largePhiMateOut.close();
+
+
+
+    //start of small output
+    std::ofstream smallBRstratOut;
+    std::ostringstream smallBRstratOutFilename;
+    smallBRstratOutFilename << "output_files/smallBRstrat.txt"; 
+    smallBRstratOut.open (smallBRstratOutFilename.str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallBRstratOut << smallBRstrategy[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallBRstratOut << "," << smallBRstrategy[tide][e][t];
+            }
+            smallBRstratOut << "," << "HT";
+        }
+        smallBRstratOut << std::endl;
+    }
+    smallBRstratOut.close();
+
+    std::ofstream smallResiStratOut;
+    std::ostringstream smallResiStratOutFilename;
+    smallResiStratOutFilename << "output_files/smallResiStrat.txt"; 
+    smallResiStratOut.open (smallResiStratOutFilename.str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallResiStratOut << smallResiStrategy[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallResiStratOut << "," << smallResiStrategy[tide][e][t];
+            }
+            smallResiStratOut << "," << "HT";
+        }
+        smallResiStratOut << std::endl;
+    }
+    smallResiStratOut.close();
+
+
+    std::ofstream smallFreqDistOut;
+    outfile.str("output_files/smallFreqDist.txt");
+    std::string smallFreqDistOutFilename = outfile.str();
+    smallFreqDistOut.open (smallFreqDistOutFilename.c_str());
+        for(int e=0; e<eMax; e++)
+        {
+            smallFreqDistOut << smallFreqDist[0][0][e][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    smallFreqDistOut << "," << smallFreqDist[0][tide][e][t];
+                }
+                smallFreqDistOut << "," << "HT";
+            }
+            smallFreqDistOut << std::endl;
+        }
+    smallFreqDistOut.close(); 
+
+    std::ofstream smallFreqDistTimeout;
+    outfile.str("output_files/smallFreqDistTimeout.txt");
+    std::string smallFreqDistTimeoutFilename = outfile.str();
+    smallFreqDistTimeout.open (smallFreqDistTimeoutFilename.c_str());
+        for(int e=0; e<eMax; e++)
+        {
+            smallFreqDistTimeout << smallFreqDist[1][0][e][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    smallFreqDistTimeout << "," << smallFreqDist[1][tide][e][t];
+                }
+                smallFreqDistTimeout << "," << "HT";
+            }
+            smallFreqDistTimeout << std::endl;
+        }
+    smallFreqDistTimeout.close(); 
+
+    std::ofstream smallWaveFit;
+    outfile.str("output_files/smallWaveFit.txt");
+    std::string smallWaveFitFilename = outfile.str();
+    smallWaveFit.open (smallWaveFitFilename.c_str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallWaveFit << smallWaveFitness[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallWaveFit << "," << smallWaveFitness[tide][e][t];
+            }
+            smallWaveFit << "," << "HT";
+        }
+        smallWaveFit << std::endl;
+    }
+    smallWaveFit.close(); 
+
+    std::ofstream smallForFit;
+    outfile.str("output_files/smallForFit.txt");
+    std::string smallForFitFilename = outfile.str();
+    smallForFit.open (smallForFitFilename.c_str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallForFit << smallForFitness[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallForFit << "," << smallForFitness[tide][e][t];
+            }
+            smallForFit << "," << "HT";
+        }
+        smallForFit << std::endl;
+    }   
+    smallForFit.close();
+
+    std::ofstream smallBRFit;
+    outfile.str("output_files/smallBRFit.txt");
+    std::string smallBRFitFilename = outfile.str();
+    smallBRFit.open (smallBRFitFilename.c_str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallBRFit << smallBRfitness[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallBRFit << "," << smallBRfitness[tide][e][t];
+            }
+            smallBRFit << "," << "HT";
+        }
+        smallBRFit << std::endl;
+    }
+    smallBRFit.close(); 
+
+    std::ofstream smallResiFit;
+    outfile.str("output_files/smallResiFit.txt");
+    std::string smallResiFitFilename = outfile.str();
+    smallResiFit.open (smallResiFitFilename.c_str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallResiFit << smallResiFitness[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallResiFit << "," << smallResiFitness[tide][e][t];
+            }
+            smallResiFit << "," << "HT";
+        }
+        smallResiFit << std::endl;
+    }
+    smallResiFit.close(); 
+
+    std::ofstream smallTimeoutFit;
+    outfile.str("output_files/smallTimeoutFit.txt");
+    std::string smallTimeoutFitFilename = outfile.str();
+    smallTimeoutFit.open (smallTimeoutFitFilename.c_str());
+    for(int e=0; e<eMax; e++)
+    {
+        smallTimeoutFit << smallTimeoutFitness[0][e][0];
+        for(int tide=0; tide<tides; tide++)
+        {
+            int tStart;
+            if(tide == 0)
+            {
+                tStart = 1;
+            }
+            else
+            {
+                tStart = 0;
+            }
+            for(int t=tStart; t<tSteps; t++)
+            {
+                smallTimeoutFit << "," << smallTimeoutFitness[tide][e][t];
+            }
+            smallTimeoutFit << "," << "HT";
+        }
+        smallTimeoutFit << std::endl;
+    }
+    smallTimeoutFit.close(); 
+
+    std::ofstream smallPMateOut;
+    outfile.str("output_files/smallFinalpMate.txt");
+    std::string smallPMateFilename = outfile.str();
+    smallPMateOut.open(smallPMateFilename.c_str());
+    smallPMateOut << smallPMate[0][0] << ",";
+    for(int tide=0; tide<tides; tide++)
+    {
+        int tStart;
+        if(tide == 0)
+        {
+            tStart = 1;
+        }
+        else
+        {
+            tStart = 0;
+        }
+        for(int t=tStart; t<tSteps; t++)
+        {
+        smallPMateOut << smallPMate[tide][t] << ",";
+        }
+        smallPMateOut << "," << "HT" << ",";
+    }
+    smallPMateOut.close();
+
+    std::ofstream phiSmallWavOut;
+    outfile.str("output_files/phismallWav.txt");
+    std::string phiSmallWavFilename = outfile.str();
+    phiSmallWavOut.open(phiSmallWavFilename.c_str());
+    phiSmallWavOut << phiSmallWav[0][0] << ",";
+    for(int tide=0; tide<tides; tide++)
+    {
+        int tStart;
+        if(tide == 0)
+        {
+            tStart = 1;
+        }
+        else
+        {
+            tStart = 0;
+        }
+        for(int t=tStart; t<tSteps; t++)
+        {
+            phiSmallWavOut << phiSmallWav[tide][t] << ",";
+        }
+        phiSmallWavOut << "," << "HT" << ",";
+    }
+    phiSmallWavOut.close();
+
+
+    for(int tide = 0; tide < tides; tide++)
+    {
+        for(int t = 0; t< tSteps; t++)
+        {
+            smallPhiDead[tide][t] = smallFreqDist[0][tide][0][t];
+
+            if(postMatingTimeout == true)
+            {
+                smallPhiDead[tide][t] += smallFreqDist[1][tide][0][t];
+            }
+        }
+    }
+
+    std::ofstream smallPhiDeadOut;
+    outfile.str("output_files/smallPhiDead.txt");
+    std::string smallPhiDeadFilename = outfile.str();
+    smallPhiDeadOut.open(smallPhiDeadFilename.c_str());
+    smallPhiDeadOut << smallPhiDead[0][0] << ",";
+    for(int tide=0; tide<tides; tide++)
+    {
+        int tStart;
+        if(tide == 0)
+        {
+            tStart = 1;
+        }
+        else
+        {
+            tStart = 0;
+        }
+        for(int t=tStart; t<tSteps; t++)
+        {
+            smallPhiDeadOut << smallPhiDead[tide][t] << ",";
+        }
+        smallPhiDeadOut << "," << "HT" << ",";
+    }
+    smallPhiDeadOut.close();
+
+    double propsmallMating;
+    for(int tide = 0; tide < tides; tide++)
+    {
+        for(int t = 0; t < tSteps; t++)
+        {
+            propsmallMating = 0;
+            for(int e = 0; e < eMax; e++)
+            {
+                propsmallMating += smallFreqDist[0][tide][e][t] * smallBRstrategy[tide][e][t] * smallPMate[tide][t];
+            }
+            smallPhiMate[tide][t] = propsmallMating;
+        }
+    }
+
+    std::ofstream smallPhiMateOut;
+    outfile.str("output_files/smallPhiMate.txt");
+    std::string smallPhiMateFilename = outfile.str();
+    smallPhiMateOut.open(smallPhiMateFilename.c_str());
+    smallPhiMateOut << smallPhiMate[0][0] << ",";
+    for(int tide=0; tide<tides; tide++)
+    {
+        int tStart;
+        if(tide == 0)
+        {
+            tStart = 1;
+        }
+        else
+        {
+            tStart = 0;
+        }
+        for(int t=tStart; t<tSteps; t++)
+        {
+            smallPhiMateOut << smallPhiMate[tide][t] << ",";
+        }
+        smallPhiMateOut << "," << "HT" << ",";
+    }
+    smallPhiMateOut.close();
 
 }
