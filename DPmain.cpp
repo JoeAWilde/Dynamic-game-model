@@ -38,7 +38,7 @@ const double pFemMax            = 0.05;
 const double pFemMin          = 0.0001;
 
 //Two morphs parameters
-const double q                   = 0.5;
+const double q                   = 0.99999999999;
 const double alpha              = 0.25;
 
 /* // pFemMax parameters
@@ -50,7 +50,7 @@ const double slp3               = -1.3; */
 // Strategy and updating parameters
 const double error              = 0.07; //McNamara error function steepness
 const double lam                 = 0.4; //how much the strategy updates by
-const double countMax         = 200000; //maximum number of iterations allowed
+const int countMax            = 200000; //maximum number of iterations allowed
 int counter                        = 0; //loop counter
 double largeMaxDiffStrat         = 1.0; //set the starting difference in strategy to be large to get the loop going
 double smallMaxDiffStrat         = 1.0;
@@ -388,33 +388,20 @@ int main()
         }
     }
 
-
-
-    //Set the terminal fitness reward and set the rest as zero
     for(int tide=0; tide<tides; tide++)
     {
         for(int t=0; t<tSteps; t++)
         {
             for(int e=0; e<eMax; e++)
             {
-                if(t==(tSteps-1) & e>0 & tide==(tides-1))
-                {          
-                    largeBRstrategy[tide][e][t] = 0.0;
-                    smallBRstrategy[tide][e][t] = 0.0;
-                    largeResiStrategy[tide][e][t] = 0.0;
-                    smallResiStrategy[tide][e][t] = 0.0;
-                }
-                else
-                {
-                    largeBRstrategy[tide][e][t] = 0.0;
-                    smallBRstrategy[tide][e][t] = 0.0;
-                    largeResiStrategy[tide][e][t] = 0.0;
-                    largeResiStrategy[tide][e][t] = 0.0;
-                }
+                largeBRstrategy[tide][e][t] = 0.0;
+                smallBRstrategy[tide][e][t] = 0.0;
+
+                largeResiStrategy[tide][e][t] = 0.0;
+                smallResiStrategy[tide][e][t] = 0.0;
             }
         }
     }
-
 
     //Populate binomList with appropriate probabilities
     double sum = 0;
@@ -431,36 +418,24 @@ int main()
     {
         for(int t=0; t<tSteps; t++)
         {
-            /* double tProp = t/tSteps;
-            pFemMax[tide][t] = intercept + (slp * tProp) + (slp2 * pow(tProp, 2)) + (slp3 * pow(tProp, 3));
-            if(pFemMax[tide][t] > 1) std::cout << "Problem: pFemMax is bigger than it should be"; */
-
             pFemMaxList[tide][t] = pFemMax;
             pFemMinList[tide][t] = pFemMin; 
-
-            /* if(t>25)
-            {
-                pFemMaxList[tide][t] = pFemMax;
-                pFemMinList[tide][t] = pFemMin; 
-            }else
-            {
-                pFemMaxList[tide][t] = 0.0;
-                pFemMinList[tide][t] = 0.0; 
-            } */
         }
     }
 
     //START OF WHILE LOOP
 
-    while(largeMaxDiffFit > 0.000001 && smallMaxDiffFit > 0.000001 && counter < countMax)
+    //while(largeMaxDiffFit > 0.000001 && smallMaxDiffFit > 0.000001 && counter < countMax)
+    while(largeMaxDiffFit > 0.000001 && counter < countMax)
     {
         //Empty out the frequency distribution array at the start of each loop
-
         for(int tide=0; tide<tides; tide++)
         {
             for(int t=0; t<tSteps; t++)
             {
                 largePMate[tide][t] = 0.0;
+                smallPMate[tide][t] = 0.0;
+
                 phiLargeWav[tide][t] = 0.0;
                 phiSmallWav[tide][t] = 0.0;
 
@@ -514,6 +489,8 @@ int main()
             smallResiStrategy = StartingStrat(smallResiStrategy, tides, eMax, tSteps);
         }
 
+        //std::cout << "smallResiStrategy[2][1][0] = " << smallResiStrategy[2][1][0] << "\n";
+
         //Call the Markov function to fill out the population frequency distributions
         ArrayContainer *markovOutput =  Markov(counter,
                                                 tides,
@@ -553,6 +530,8 @@ int main()
         smallFreqDist = markovOutput->array4;
         smallPMate = markovOutput->array5;
         phiSmallWav = markovOutput->array6;
+
+        //std::cout << "smallResiStrategy[2][1][0] = " << smallResiStrategy[2][1][0] << "\n";
 
         //Work backwards through the low tide period, cycling through each energy level per time step
         for(int tide=(tides-1); tide>=0; tide--)
@@ -599,10 +578,10 @@ int main()
                             smallResiTimeoutFitness[tide][e][t] = TimeoutFitness(tide, t, e, metCostProb, smallResiTimeoutFitness, smallResiFitness, ptau, pMort);
 
                         }
-                        
+                        //std::cout << "BEFOREsmallWaveFitness[" << tide << "][" << e << "][" << t << "] = " << smallWaveFitness[tide][e][t] << "\n";
                         largeWaveFitness[tide][e][t] = WaveFitness(tide, t, e, largeTimeoutFitness, largeBRfitness, waveCost, metCostProb, largePMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
                         smallWaveFitness[tide][e][t] = WaveFitness(tide, t, e, smallTimeoutFitness, smallBRfitness, waveCost, metCostProb, smallPMate, mateBonus, pMort, pWaveMort, postMatingTimeout);
-
+                        //std::cout << "smallWaveFitness[" << tide << "][" << e << "][" << t << "] = " << smallWaveFitness[tide][e][t] << "\n\n";
                         largeForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, largeBRfitness, n, binom, pMort, metCostProb);
                         smallForFitness[tide][e][t] = ForageFitness(tide, t, e, eMax, smallBRfitness, n, binom, pMort, metCostProb);
 
@@ -619,11 +598,16 @@ int main()
                         double largeExponentPlusOne = largeExponent + 1;
                         largeBRstrategy[tide][e][t] = 1/largeExponentPlusOne;
 
+                        //std::cout << "BEFOREsmallBRstrategy[" << tide << "][" << e << "][" << t << "] = " << smallBRstrategy[tide][e][t] << "\n";
+                        //std::cout << "smallWaveFitness[" << tide << "][" << e << "][" << t << "] = " << smallWaveFitness[tide][e][t] << "\n";
+
                         double smallFitDiff = smallForFitness[tide][e][t] - smallWaveFitness[tide][e][t];
                         double smallFitDiffErr = smallFitDiff/error;
                         double smallExponent = exp(smallFitDiffErr);
                         double smallExponentPlusOne = smallExponent + 1;
                         smallBRstrategy[tide][e][t] = 1/smallExponentPlusOne;
+
+                        //std::cout << "smallBRstrategy[" << tide << "][" << e << "][" << t << "] = " << smallBRstrategy[tide][e][t] << "\n\n";
 
                         largeBRfitness[tide][e][t] = (largeBRstrategy[tide][e][t] * largeWaveFitness[tide][e][t]) + ((1-largeBRstrategy[tide][e][t]) * largeForFitness[tide][e][t]);
                         smallBRfitness[tide][e][t] = (smallBRstrategy[tide][e][t] * smallWaveFitness[tide][e][t]) + ((1-smallBRstrategy[tide][e][t]) * smallForFitness[tide][e][t]);
@@ -674,17 +658,22 @@ int main()
                 }
             }
         }
+        //std::cout << "smallResiStrategy[2][1][0] = " << smallResiStrategy[2][1][0] << "\n";
         for(int tide=0; tide<tides; tide++)
         {     
             for(int t=0; t<tSteps; t++)
             {
                 for(int e=0; e<eMax; e++)
                 {
+
+
                     largeResiStrategy[tide][e][t] = (lam * largeBRstrategy[tide][e][t]) + ((1-lam) * largeResiStrategy[tide][e][t]);
                     smallResiStrategy[tide][e][t] = (lam * smallBRstrategy[tide][e][t]) + ((1-lam) * smallResiStrategy[tide][e][t]);
+                    //std::cout << "smallBRstrategy[" << tide << "][" << e << "][" << t << ")] = " << smallBRstrategy[tide][e][t] << "\n";
                 }
             }
         }
+        //std::cout << "smallResiStrategy[2][1][0] = " << smallResiStrategy[2][1][0] << "\n";
         counter++;
 
         if(counter % 10 == 0){
@@ -720,6 +709,7 @@ int main()
             }
         }
     }
+
     largeFreqDist[0][0][(eMax-1)/2][0] = q;
     smallFreqDist[0][0][(eMax-1)/2][0] = (1-q);
 

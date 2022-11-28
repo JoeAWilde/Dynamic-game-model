@@ -113,16 +113,33 @@ ArrayContainer* Markov(int counter,
             {
                 double propLargeWaving = 0.0; //set the proportion of rivals waving in each timestep to zero
                 double propSmallWaving = 0.0;
+                /* std::cout << "propSmallWaving at start = " << propSmallWaving << "\n"; */
+
                 for(int e=1; e<eMax; e++)
                 {
-                    propLargeWaving += (largeResiStrategy[tide][e][t]*(largeFreqDist[0][tide][e][t]/q)); //add up the products of the probability of waving and the frequency of the 
+                    propLargeWaving += largeResiStrategy[tide][e][t] * largeFreqDist[0][tide][e][t]; //add up the products of the probability of waving and the frequency of the 
                                                                     //population that have that probability of waving
-                    propSmallWaving += (smallResiStrategy[tide][e][t]*(smallFreqDist[0][tide][e][t]/(1-q)));
+
+                    //std::cout << "smallResiStrategy[" << tide << "][" << e << "][" << t << "] = " << smallResiStrategy[tide][e][t] << "\n";
+                    //std::cout << "smallFreqDist[0][" << tide << "][" << e << "][" << t << "] = " << smallFreqDist[0][tide][e][t] << "\n\n"; 
+                    propSmallWaving += smallResiStrategy[tide][e][t] * smallFreqDist[0][tide][e][t];
                 }
+
+                /* std::cout << "propSmallWaving at end = " << propSmallWaving << "\n"; */
+
                 phiLargeWav[tide][t] = propLargeWaving; //set the total proportion of rivals waving for that timestep
                 phiSmallWav[tide][t] = propSmallWaving; //set the total proportion of rivals waving for that timestep
 
-                double effectOfWavers = (phiLargeWav[tide][t] * q) + ((1-alpha) * phiSmallWav[tide][t] * (1-q));
+                /* std::cout << "phiSmallWav[" << tide << "][" << t << "] = " << phiSmallWav[tide][t] << "\n\n"; */
+
+                //std::cout << "phiLargeWav[" << tide << "][" << t << "] = " << phiLargeWav[tide][t] << "\n";
+
+                //std::cout << "((1-alpha) * phiSmallWav[" << tide << "][" << t << "]) = " << ((1-alpha) * phiSmallWav[tide][t]) << "\n\n";
+
+                double effectOfWavers = (phiLargeWav[tide][t]) + ((1-alpha) * phiSmallWav[tide][t]);
+
+                //std::cout << "effectOfWavers = " << effectOfWavers << "\n";
+
                 double pMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
                 double pMateBottomLine = effectOfWavers + b;
 
@@ -130,6 +147,12 @@ ArrayContainer* Markov(int counter,
 
                 largePMate[tide][t] = pMateTopLine / pMateBottomLine; //calculate pMate from Rt
                 smallPMate[tide][t] = (pMateTopLine / pMateBottomLine) * (1 - alpha);
+
+                /* std::cout << "pMateTopLine = " << pMateTopLine << "\n";
+                std::cout << "pMateBottomLine = " << pMateBottomLine << "\n\n"; */
+
+                //std::cout << "smallPMate[" << tide << "][" << t << "] = " << smallPMate[tide][t] << "\n\n";
+
 
                 if(largePMate[tide][t] > 1.0) largePMate[tide][t] = 1.0; //resets probability of mating within 1
                 if(smallPMate[tide][t] > 1.0) smallPMate[tide][t] = 1.0; //resets probability of mating within 1
