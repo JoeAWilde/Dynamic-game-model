@@ -38,7 +38,7 @@ const double pFemMax            = 0.05;
 const double pFemMin          = 0.0001;
 
 //Two morphs parameters
-const double q                   = 0.999999999;
+const double q                   = 0.5;
 const double alpha              = 0.25;
 
 /* // pFemMax parameters
