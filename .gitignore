@@ -1,3 +1,4 @@
 figures/*.pptx
 figures/old/*.pptx
 output_files/*.txt
+output_files/*.Rhistory
