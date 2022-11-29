@@ -40,16 +40,22 @@ ArrayContainer* Markov(int counter,
                 double pWaveMort)
                 
 {
+    //std::cout << "counter = " << counter << "\n";
+    //std::cout << "start of markov smallPMate[2][0] = " << smallPMate[2][0] << "\n";
+    //std::cout << "start of markov smallFreqDist[0][2][1][0] = " << smallFreqDist[0][2][1][0] << "\n"; 
     int tideIndex;
     int timeIndex;
 
     largeFreqDist[0][0][(eMax-1)/2][0] = q; //put the whole populaton at the middle energy level
     smallFreqDist[0][0][(eMax-1)/2][0] = (1-q);
 
-    for(int tide=0; tide<tides; tide++)
+    //std::cout << "after assignment smallFreqDist[0][2][1][0] = " << smallFreqDist[0][2][1][0] << "\n"; 
+
+    for(int tide=0; tide<tides; tide++) //cycle through the tides
     {
+        //std::cout << "tide = " << tide << "\n";
         int tStop;
-        if(tide == tides-1) 
+        if(tide == tides-1) //don't do the last timestep in the last tide
         {
             tStop = tSteps-2;
         }
@@ -59,6 +65,7 @@ ArrayContainer* Markov(int counter,
         }
         for(int t=0; t<=tStop; t++) //cycle forward through the timesteps
         {
+            //std::cout << "t = " << t << "\n";
             tideIndex = tide;
             timeIndex = t+1;
 
@@ -78,12 +85,13 @@ ArrayContainer* Markov(int counter,
                 //if in the final timestep of a tide, do high tide cost to all non-dead population
                 for(int e=1; e<eMax; e++) 
                 {
+                    //std::cout << "e = " << e << "\n";
+
                     if(stochasticHTcost==true)
                     {
                         for(int x=0; x<3; x++) //cycle through possible high tide costs
                         {
                             int eHTindex = e - (HTcost-2+x);
-
 
                             if(eHTindex<0) eHTindex=0;
 
@@ -93,7 +101,9 @@ ArrayContainer* Markov(int counter,
                                 largeFreqDist[i][tideIndex][eHTindex][timeIndex] += (largeFreqDist[i][tide][e][t] * HTCprob[x]);
                                 smallFreqDist[i][tideIndex][eHTindex][timeIndex] += (smallFreqDist[i][tide][e][t] * HTCprob[x]);
                             }
+                            
                         }
+
                     }
                     else //if using fixed high tide cost
                     {
@@ -105,9 +115,17 @@ ArrayContainer* Markov(int counter,
                         {
                             largeFreqDist[i][tideIndex][eHTindex][timeIndex] += largeFreqDist[i][tide][e][t];
                             smallFreqDist[i][tideIndex][eHTindex][timeIndex] += smallFreqDist[i][tide][e][t];
+
+                            /* std::cout << "smallFreqDist[" << i << "][" << tide << "][" << e << "][" << t << "] = " << smallFreqDist[0][tide][e][t] << "\n";
+                            std::cout << "smallFreqDist[" << i << "][" << tideIndex << "][" << eHTindex << "][" << timeIndex << "] = " << smallFreqDist[0][tideIndex][eHTindex][timeIndex] << "\n\n"; */
                         }
+
+                        
                     }
+                    //std::cout << smallFreqDist[0][2][1][0] << "\n";
                 }
+                //std::cout << "\n";
+                //std::cout << "after high tide smallFreqDist[0][2][1][0] = " << smallFreqDist[0][2][1][0] << "\n\n"; 
             }
             else //if we don't go across a tide boundary
             {
@@ -120,8 +138,8 @@ ArrayContainer* Markov(int counter,
                     propLargeWaving += largeResiStrategy[tide][e][t] * largeFreqDist[0][tide][e][t]; //add up the products of the probability of waving and the frequency of the 
                                                                     //population that have that probability of waving
 
-                    //std::cout << "smallResiStrategy[" << tide << "][" << e << "][" << t << "] = " << smallResiStrategy[tide][e][t] << "\n";
-                    //std::cout << "smallFreqDist[0][" << tide << "][" << e << "][" << t << "] = " << smallFreqDist[0][tide][e][t] << "\n\n"; 
+                    //if(tide == 2 & e == 1 & t == 0)std::cout << "smallResiStrategy[2][1][0] = " << smallResiStrategy[tide][e][t] << "\n";
+                    //if(tide == 2 & e == 1 & t == 0)std::cout << "smallFreqDist[0][2][1][0] = " << smallFreqDist[0][tide][e][t] << "\n"; 
                     propSmallWaving += smallResiStrategy[tide][e][t] * smallFreqDist[0][tide][e][t];
                 }
 
@@ -268,18 +286,20 @@ ArrayContainer* Markov(int counter,
             for(int e = 0; e<eMax; e++) //rescale the next timestep so that it is a proportion of those alive
             {
                 largeFreqDist[0][tideIndex][e][t] = (largeFreqDist[0][tideIndex][e][t]/largePropAliveNonTimeout);
-                smallFreqDist[0][tideIndex][e][t] = (smallFreqDist[0][tideIndex][e][t]/smallPropAliveNonTimeout);
+                if(q!=1) smallFreqDist[0][tideIndex][e][t] = (smallFreqDist[0][tideIndex][e][t]/smallPropAliveNonTimeout);
 
                 if(postMatingTimeout == true)
                 {
                     largeFreqDist[1][tideIndex][e][t] = (largeFreqDist[1][tideIndex][e][t]/largePropAliveTimeout);
-                    smallFreqDist[1][tideIndex][e][t] = (smallFreqDist[1][tideIndex][e][t]/smallPropAliveTimeout);
+                    if(q!=1) smallFreqDist[1][tideIndex][e][t] = (smallFreqDist[1][tideIndex][e][t]/smallPropAliveTimeout);
                 }
             }
 
         }
     }
     ArrayContainer* masterArray = new ArrayContainer();
+
+    //std::cout << "end of markov smallPMate[2][0] = " << smallPMate[2][0] << "\n\n";
 
     masterArray->array1 = largeFreqDist;
     masterArray->array2 = largePMate;

@@ -13,7 +13,7 @@
 // Array dimensions
 const int eMax                   = 51; //energy levels
 const int tSteps                 = 50; //timeSteps
-const int tides                  = 30; //tides (fixed number)
+const int tides                  = 180; //tides (fixed number)
 
 // High tide cost parameters
 const int HTcost                  = 10; //energetic cost of high tide
@@ -710,8 +710,7 @@ int main()
         }
     }
 
-    largeFreqDist[0][0][(eMax-1)/2][0] = q;
-    smallFreqDist[0][0][(eMax-1)/2][0] = (1-q);
+
 
     ArrayContainer *markovOutput2 =  Markov(counter,
                                                 tides,
