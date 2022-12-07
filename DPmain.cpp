@@ -13,7 +13,7 @@
 // Array dimensions
 const int eMax                   = 51; //energy levels
 const int tSteps                 = 50; //timeSteps
-const int tides                  = 180; //tides (fixed number)
+const int tides                  = 30; //tides (fixed number)
 
 // High tide cost parameters
 const int HTcost                  = 10; //energetic cost of high tide
@@ -34,12 +34,12 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.3; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                   = 0.1; //same as above
-const double pFemMax            = 0.05;
-const double pFemMin          = 0.0001;
+const double pFemMax            = 1.0;
+const double pFemMin          = 1.0;
 
 //Two morphs parameters
 const double q                   = 0.5;
-const double alpha              = 0.75;
+const double alpha              = 0.25;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
