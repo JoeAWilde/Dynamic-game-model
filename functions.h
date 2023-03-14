@@ -43,6 +43,7 @@ ArrayContainer* Markov(int counter,
                 double**** smallFreqDist,
                 double q,
                 double alpha,
+                double zeta,
                 double pMort, 
                 double pWaveMort);
 

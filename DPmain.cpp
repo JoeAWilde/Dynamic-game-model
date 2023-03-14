@@ -34,12 +34,13 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.3; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                   = 0.1; //same as above
-const double pFemMax            = 1.0;
-const double pFemMin          = 1.0;
+const double pFemMax             = 0.3;
+const double pFemMin           = 0.001;
 
 //Two morphs parameters
 const double q                   = 0.5;
 const double alpha              = 0.25;
+const double zeta               = 0.25;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -519,6 +520,7 @@ int main()
                                                 smallFreqDist,
                                                 q,
                                                 alpha,
+                                                zeta,
                                                 pMort, 
                                                 pWaveMort);
 
@@ -739,6 +741,7 @@ int main()
                                                 smallFreqDist,
                                                 q,
                                                 alpha,
+                                                zeta,
                                                 pMort, 
                                                 pWaveMort);
 

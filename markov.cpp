@@ -36,6 +36,7 @@ ArrayContainer* Markov(int counter,
                 double**** smallFreqDist,
                 double q,
                 double alpha,
+                double zeta,
                 double pMort, 
                 double pWaveMort)
                 
@@ -158,13 +159,16 @@ ArrayContainer* Markov(int counter,
 
                 //std::cout << "effectOfWavers = " << effectOfWavers << "\n";
 
-                double pMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
-                double pMateBottomLine = effectOfWavers + b;
+                double largepMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (1 + zeta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
+                double largepMateBottomLine = phiLargeWav[tide][t] + (1 - zeta) * phiSmallWav[tide][t] + b;
+
+                double smallpMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (1 - zeta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
+                double smallpMateBottomLine = phiLargeWav[tide][t] * (1 + zeta) + phiSmallWav[tide][t] + b;
 
 
 
-                largePMate[tide][t] = pMateTopLine / pMateBottomLine; //calculate pMate from Rt
-                smallPMate[tide][t] = (pMateTopLine / pMateBottomLine) * (1 - alpha);
+                largePMate[tide][t] = largepMateTopLine / largepMateBottomLine; //calculate pMate from Rt
+                smallPMate[tide][t] = (smallpMateTopLine / smallpMateBottomLine);
 
                 /* std::cout << "pMateTopLine = " << pMateTopLine << "\n";
                 std::cout << "pMateBottomLine = " << pMateBottomLine << "\n\n"; */
