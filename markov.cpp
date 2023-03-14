@@ -144,37 +144,27 @@ ArrayContainer* Markov(int counter,
                     propSmallWaving += smallResiStrategy[tide][e][t] * smallFreqDist[0][tide][e][t];
                 }
 
-                /* std::cout << "propSmallWaving at end = " << propSmallWaving << "\n"; */
-
                 phiLargeWav[tide][t] = propLargeWaving; //set the total proportion of rivals waving for that timestep
                 phiSmallWav[tide][t] = propSmallWaving; //set the total proportion of rivals waving for that timestep
 
-                /* std::cout << "phiSmallWav[" << tide << "][" << t << "] = " << phiSmallWav[tide][t] << "\n\n"; */
+                double effectOfWavers = phiLargeWav[tide][t] + (1-alpha) * phiSmallWav[tide][t];
 
-                //std::cout << "phiLargeWav[" << tide << "][" << t << "] = " << phiLargeWav[tide][t] << "\n";
+                double largepMateTopLine = (pFemMinList[tide][t] + pow(effectOfWavers, theta)) * (1 + zeta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]);
+                double largepMateBottomLine = phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t]) + b;
 
-                //std::cout << "((1-alpha) * phiSmallWav[" << tide << "][" << t << "]) = " << ((1-alpha) * phiSmallWav[tide][t]) << "\n\n";
+                double smallpMateTopLine = (pFemMinList[tide][t] + pow(effectOfWavers, theta)) * (1 - zeta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]);
+                std::cout << "tide = " << tide << ", t = " << t << "\n";
+                std::cout << "smallpMateTopLine = " << smallpMateTopLine << "\n";
 
-                double effectOfWavers = (phiLargeWav[tide][t]) + ((1-alpha) * phiSmallWav[tide][t]);
+                double smallpMateBottomLine = (phiLargeWav[tide][t] * (1 + zeta)) + phiSmallWav[tide][t] + b;
+                std::cout << "smallpMateBottomLine = " << smallpMateBottomLine << "\n";
 
-                //std::cout << "effectOfWavers = " << effectOfWavers << "\n";
-
-                double largepMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (1 + zeta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
-                double largepMateBottomLine = phiLargeWav[tide][t] + (1 - zeta) * phiSmallWav[tide][t] + b;
-
-                double smallpMateTopLine = pFemMinList[tide][t] + (pow(effectOfWavers, theta) * (1 - zeta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]));
-                double smallpMateBottomLine = phiLargeWav[tide][t] * (1 + zeta) + phiSmallWav[tide][t] + b;
-
-
+                std::cout << "fraction = " << smallpMateTopLine / smallpMateBottomLine << "\n\n";
 
                 largePMate[tide][t] = largepMateTopLine / largepMateBottomLine; //calculate pMate from Rt
-                smallPMate[tide][t] = (smallpMateTopLine / smallpMateBottomLine);
+                smallPMate[tide][t] = smallpMateTopLine / smallpMateBottomLine;
 
-                /* std::cout << "pMateTopLine = " << pMateTopLine << "\n";
-                std::cout << "pMateBottomLine = " << pMateBottomLine << "\n\n"; */
-
-                //std::cout << "smallPMate[" << tide << "][" << t << "] = " << smallPMate[tide][t] << "\n\n";
-
+                /* std::cout << "smallPMate[" << tide << "][" << t << "] = " << smallPMate[tide][t] << "\n\n"; */
 
                 if(largePMate[tide][t] > 1.0) largePMate[tide][t] = 1.0; //resets probability of mating within 1
                 if(smallPMate[tide][t] > 1.0) smallPMate[tide][t] = 1.0; //resets probability of mating within 1

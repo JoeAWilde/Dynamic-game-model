@@ -32,15 +32,15 @@ const int n                        = 4; //max energy gain from foraging
 const double p                   = 0.9; //probability of success on each trial
 
 // Mating parameters
-const double theta               = 0.3; //parameters controlling the relationship between rivals waving and probability of mating
-const double b                   = 0.1; //same as above
+const double theta               = 0.8; //parameters controlling the relationship between rivals waving and probability of mating
+const double b                  = 0.01; //same as above
 const double pFemMax             = 0.3;
 const double pFemMin           = 0.001;
 
 //Two morphs parameters
 const double q                   = 0.5;
-const double alpha              = 0.25;
-const double zeta               = 0.25;
+const double alpha              = 0.0;
+const double zeta               = 1.0;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -51,7 +51,7 @@ const double slp3               = -1.3; */
 // Strategy and updating parameters
 const double error              = 0.07; //McNamara error function steepness
 const double lam                 = 0.4; //how much the strategy updates by
-const int countMax            = 200000; //maximum number of iterations allowed
+const int countMax            = 0; //maximum number of iterations allowed
 int counter                        = 0; //loop counter
 double largeMaxDiffStrat         = 1.0; //set the starting difference in strategy to be large to get the loop going
 double smallMaxDiffStrat         = 1.0;
