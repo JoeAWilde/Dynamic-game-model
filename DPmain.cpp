@@ -686,7 +686,7 @@ int main()
     std::cout << " final smallMaxDiffFit = " << largeMaxDiffFit << "\n";
     std::chrono::duration<double> elapsed_seconds = timeNow-start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(timeNow);
-    std::cout << " total elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n\n\n\n";
+    std::cout << " total elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n\n";
 
     for(int i=0; i<2; i++)
     {
@@ -1654,11 +1654,11 @@ int main()
         simEnergy = simOutput->array10;
         simBehav = simOutput->array11;
 
-        std::cout << "Simulation of " << N << " individuals complete! Have a nice day! \n";
+        std::cout << "Simulation of " << N << " individuals complete! Have a nice day! \n\n";
 
         std::ofstream simSizesOut;
         std::ostringstream simSizesOutFilename;
-        simSizesOutFilename << "output_files/simMating.txt"; 
+        simSizesOutFilename << "output_files/simSizes.txt"; 
         simSizesOut.open (simSizesOutFilename.str());
         simSizesOut << simSizes[0];
         for(int z=1; z<N; z++)
