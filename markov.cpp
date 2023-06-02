@@ -182,7 +182,7 @@ ArrayContainer* Markov(int counter,
                     {
                         for(int m=0; m<3; m++)
                         {
-                            int eTimeout = e - m; //lose on energy unit staying in timeout
+                            int eTimeout = e; //lose on energy unit staying in timeout
 
                             if(eTimeout<0) eTimeout=0; //reset within bounds
 

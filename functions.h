@@ -47,6 +47,35 @@ ArrayContainer* Markov(int counter,
                 double pMort, 
                 double pWaveMort);
 
-
+ArrayContainer* Sim(
+                int N,
+                int eMax, 
+                int tSteps, 
+                int tides, 
+                int HTcost, 
+                double* pMateL,
+                double* pMateS, 
+                int waveCost, 
+                int n, 
+                double p,
+                bool stochasticHTcost, 
+                double b, 
+                double theta, 
+                double ptau,
+                bool postMatingTimeout,     
+                double** largeSimStrat, 
+                double** smallSimStrat,
+                double q,
+                double alpha,
+                double zeta,
+                double pMort, 
+                double pWaveMort,
+                int*** simEnergy,
+                double*** simMating,
+                double*** simAlive,
+                double*** simTimeout,
+                char*** simBehav,
+                int* simSizes
+                );
 
 #endif

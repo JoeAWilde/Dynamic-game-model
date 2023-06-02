@@ -7,6 +7,7 @@
 #include <bits/stdc++.h>
 #include <chrono>
 #include <ctime>   
+#include <random>
 #include "functions.h"
 
 // Initialising...
@@ -21,7 +22,7 @@ const bool stochasticHTcost     = true; //is the high tide cost fixed or stochas
 
 // Costs
 const int waveCost                 = 5; //cost of waving
-const double ptau                = 0.2; //probability of returning to non-timeout array
+const double ptau               = 0.005; //probability of returning to non-timeout array
 const bool postMatingTimeout    = true;
 const int mateBonus                = 5; //fitness bonus from mating
 const double pMort           = 0.00001; //probability of death in every timeStep
@@ -34,7 +35,7 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.8; //parameters controlling the relationship between rivals waving and probability of mating
 const double b               = 0.00001; 
-const double pFemMax             = 0.3;
+const double pFemMax             = 0.1;
 const double pFemMin           = 0.001;
 
 //Two morphs parameters
@@ -65,6 +66,10 @@ double HTCprob[3]     = {0.25, 0.5, 0.25}; //probability of getting each high ti
 double metCostProb[3] = {0.25, 0.5, 0.25}; //probability of getting each metabolic cost
 int biggestCell[2]; //looks for the biggest difference between two strategies
 
+bool sim                           = true;
+
+//Simulation paramters
+int N                               = 200;
 
 int main()
 {
@@ -681,7 +686,7 @@ int main()
     std::cout << " final smallMaxDiffFit = " << largeMaxDiffFit << "\n";
     std::chrono::duration<double> elapsed_seconds = timeNow-start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(timeNow);
-    std::cout << " total elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n";
+    std::cout << " total elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n\n\n\n";
 
     for(int i=0; i<2; i++)
     {
@@ -1496,5 +1501,311 @@ int main()
         smallPhiMateOut << "," << "HT" << ",";
     }
     smallPhiMateOut.close(); 
+
+
+    if(sim)
+    {
+        // Create a random device
+        std::random_device rd;
+
+        // Initialize a random number generator
+        std::default_random_engine engine(rd());
+
+        // Create a uniform_real_distribution between 0 and 1
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+        int ***simEnergy = new int **[tides]; //[tides][individual][timestep]
+        for(int x=0; x<tides; x++)
+        {
+            simEnergy[x] = new int *[N];   //create a pointer that is eMax units long
+            for(int i=0; i<N; i++) //in each of those indices
+            {
+                simEnergy[x][i] = new int[tSteps]; //make a pointer that is tSteps units long
+            }
+        }
+
+        double ***simMating = new double **[tides];
+        for(int x=0; x<tides; x++)
+        {
+            simMating[x] = new double *[N];   //create a pointer that is eMax units long
+            for(int i=0; i<N; i++) //in each of those indices
+            {
+                simMating[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            }
+        }
+
+        double ***simAlive = new double **[tides];
+        for(int x=0; x<tides; x++)
+        {
+            simAlive[x] = new double *[N];   //create a pointer that is eMax units long
+            for(int i=0; i<N; i++) //in each of those indices
+            {
+                simAlive[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            }
+        }
+
+        double ***simTimeout = new double **[tides];
+        for(int x=0; x<tides; x++)
+        {
+            simTimeout[x] = new double *[N];   //create a pointer that is eMax units long
+            for(int i=0; i<N; i++) //in each of those indices
+            {
+                simTimeout[x][i] = new double[tSteps]; //make a pointer that is tSteps units long
+            }
+        }
+
+        char ***simBehav = new char **[tides];
+        for(int x=0; x<tides; x++)
+        {
+            simBehav[x] = new char *[N];   //create a pointer that is eMax units long
+            for(int i=0; i<N; i++) //in each of those indices
+            {
+                simBehav[x][i] = new char[tSteps]; //make a pointer that is tSteps units long
+            }
+        }
+
+        int* simSizes = new int[N];
+
+        for(int z = 0; z < N; z++)
+        {
+            double random_double = dist(engine);
+            if(random_double > 0.5)
+            {
+                simSizes[z] = 1; //large 
+
+            }
+            else
+            {
+                simSizes[z] = 0; //small
+            }
+        }
+
+        double **largeSimStrat = new double *[eMax];   //create a pointer that is eMax units long
+        double **smallSimStrat = new double *[eMax];
+        for(int i=0; i<eMax; i++) //in each of those indices
+        {
+            largeSimStrat[i] = new double[tSteps]; //make a pointer that is tSteps units long
+            smallSimStrat[i] = new double[tSteps]; //make a pointer that is tSteps units long
+        }
+
+        double pMateL[tSteps];
+        double pMateS[tSteps];
+
+        for(int t = 0; t < tSteps; t ++)
+        {
+            pMateL[t] = largePMate[tides/2][t];
+            pMateS[t] = smallPMate[tides/2][t];
+        }
+
+        for(int t = 0; t < tSteps; t ++)
+        {
+            for(int e = 0; e < eMax; e ++)
+            {
+                largeSimStrat[e][t] = largeBRstrategy[tides/2][e][t];
+                smallSimStrat[e][t] = smallBRstrategy[tides/2][e][t];
+            }
+        }
+
+        for(int tide = 0; tide < tides; tide ++)
+        {
+            for(int z = 0; z < N; z ++)
+            {
+                for(int t = 0; t < tSteps; t ++)
+                {
+                    simAlive[tide][z][t] = 1;
+                    simMating[tide][z][t] = 0;
+                    simTimeout[tide][z][t] = 0;
+                }
+            }
+        }
+
+        ArrayContainer *simOutput =  Sim(N,
+                                        eMax, 
+                                        tSteps, 
+                                        tides, 
+                                        HTcost, 
+                                        pMateL,
+                                        pMateS, 
+                                        waveCost,
+                                        n, 
+                                        p,
+                                        stochasticHTcost,
+                                        b, 
+                                        theta, 
+                                        ptau,
+                                        postMatingTimeout,
+                                        largeSimStrat,
+                                        smallSimStrat,
+                                        q,
+                                        alpha,
+                                        zeta,
+                                        pMort,
+                                        pWaveMort,
+                                        simEnergy,
+                                        simMating,
+                                        simAlive,
+                                        simTimeout,
+                                        simBehav,
+                                        simSizes);
+
+        simMating = simOutput->array7;
+        simTimeout = simOutput->array8;
+        simAlive = simOutput->array9;
+        simEnergy = simOutput->array10;
+        simBehav = simOutput->array11;
+
+        std::cout << "Simulation of " << N << " individuals complete! Have a nice day! \n";
+
+        std::ofstream simSizesOut;
+        std::ostringstream simSizesOutFilename;
+        simSizesOutFilename << "output_files/simMating.txt"; 
+        simSizesOut.open (simSizesOutFilename.str());
+        simSizesOut << simSizes[0];
+        for(int z=1; z<N; z++)
+        {
+            simSizesOut << "," << simSizes[z];
+        }
+        simSizesOut.close();
+
+        std::ofstream simMatingOut;
+        std::ostringstream simMatingOutFilename;
+        simMatingOutFilename << "output_files/simMating.txt"; 
+        simMatingOut.open (simMatingOutFilename.str());
+        for(int z=0; z<N; z++)
+        {
+            simMatingOut << simMating[0][z][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    simMatingOut << "," << simMating[tide][z][t];
+                }
+                simMatingOut << "," << "HT";
+            }
+            simMatingOut << std::endl;
+        }
+        simMatingOut.close();
+
+        std::ofstream simTimeoutOut;
+        std::ostringstream simTimeoutOutFilename;
+        simTimeoutOutFilename << "output_files/simTimeout.txt"; 
+        simTimeoutOut.open (simTimeoutOutFilename.str());
+        for(int z=0; z<N; z++)
+        {
+            simTimeoutOut << simTimeout[0][z][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    simTimeoutOut << "," << simTimeout[tide][z][t];
+                }
+                simTimeoutOut << "," << "HT";
+            }
+            simTimeoutOut << std::endl;
+        }
+        simTimeoutOut.close();
+
+        std::ofstream simAliveOut;
+        std::ostringstream simAliveOutFilename;
+        simAliveOutFilename << "output_files/simAlive.txt"; 
+        simAliveOut.open (simAliveOutFilename.str());
+        for(int z=0; z<N; z++)
+        {
+            simAliveOut << simAlive[0][z][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    simAliveOut << "," << simAlive[tide][z][t];
+                }
+            simAliveOut << "," << "HT";
+            }
+            simAliveOut << std::endl;
+        }
+        simAliveOut.close();
+
+        std::ofstream simEnergyOut;
+        std::ostringstream simEnergyOutFilename;
+        simEnergyOutFilename << "output_files/simEnergy.txt"; 
+        simEnergyOut.open (simEnergyOutFilename.str());
+        for(int z=0; z<N; z++)
+        {
+            simEnergyOut << simEnergy[0][z][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    simEnergyOut << "," << simEnergy[tide][z][t];
+                }
+            simEnergyOut << "," << "HT";
+            }
+            simEnergyOut << std::endl;
+        }
+        simEnergyOut.close();
+
+        std::ofstream simBehavOut;
+        std::ostringstream simBehavOutFilename;
+        simBehavOutFilename << "output_files/simBehav.txt"; 
+        simBehavOut.open (simBehavOutFilename.str());
+        for(int z=0; z<N; z++)
+        {
+            simBehavOut << simBehav[0][z][0];
+            for(int tide=0; tide<tides; tide++)
+            {
+                int tStart;
+                if(tide == 0)
+                {
+                    tStart = 1;
+                }
+                else
+                {
+                    tStart = 0;
+                }
+                for(int t=tStart; t<tSteps; t++)
+                {
+                    simBehavOut << "," << simBehav[tide][z][t];
+                }
+            simBehavOut << "," << "HT";
+            }
+            simBehavOut << std::endl;
+        }
+        simBehavOut.close();
+    }
 
 }

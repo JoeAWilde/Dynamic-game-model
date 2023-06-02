@@ -10,6 +10,11 @@ class ArrayContainer
     double**** array4;
     double** array5;
     double** array6;
+    double*** array7;
+    double*** array8;
+    double*** array9;
+    int*** array10;
+    char*** array11;
 };
 
 #endif
