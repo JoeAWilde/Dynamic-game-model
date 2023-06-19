@@ -12,9 +12,9 @@
 
 // Initialising...
 // Array dimensions
-const int eMax                   = 51; //energy levels
+const int eMax                  = 101; //energy levels
 const int tSteps                = 101; //timeSteps
-const int tides                  = 30; //tides (fixed number)
+const int tides                  = 60; //tides (fixed number)
 
 // High tide cost parameters
 const int HTcost                  = 10; //energetic cost of high tide
@@ -22,7 +22,7 @@ const bool stochasticHTcost     = true; //is the high tide cost fixed or stochas
 
 // Costs
 const int waveCost                 = 5; //cost of waving
-const double ptau               = 0.005; //probability of returning to non-timeout array
+const double ptau              = 0.005; //probability of returning to non-timeout array
 const bool postMatingTimeout    = true;
 const int mateBonus                = 5; //fitness bonus from mating
 const double pMort           = 0.00001; //probability of death in every timeStep
@@ -33,15 +33,16 @@ const int n                        = 4; //max energy gain from foraging
 const double p                   = 0.9; //probability of success on each trial
 
 // Mating parameters
-const double theta               = 0.8; //parameters controlling the relationship between rivals waving and probability of mating
-const double b               = 0.00001; 
-const double pFemMax             = 0.1;
+const double theta              = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
+const double b                   = 1.0; 
+const double pFemMax             = 1.0;
 const double pFemMin           = 0.001;
+const int multi                   = 20;
 
 //Two morphs parameters
 const double q                  = 0.5;
-const double alpha              = 0.2;
-const double zeta               = 0.2;
+const double alpha              = 0.25;
+const double zeta               = 0.75;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -70,6 +71,7 @@ bool sim                           = true;
 
 //Simulation paramters
 int N                               = 200;
+int simTides                      = tides;
 
 int main()
 {
@@ -503,7 +505,8 @@ int main()
                                                 waveCost,
                                                 n,
                                                 stochasticHTcost,
-                                                b, 
+                                                b,
+                                                multi, 
                                                 theta, 
                                                 ptau,
                                                 postMatingTimeout,     
@@ -715,6 +718,7 @@ int main()
                                                 n,
                                                 stochasticHTcost,
                                                 b, 
+                                                multi,
                                                 theta, 
                                                 ptau,
                                                 postMatingTimeout,     
@@ -1514,8 +1518,8 @@ int main()
         // Create a uniform_real_distribution between 0 and 1
         std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-        int ***simEnergy = new int **[tides]; //[tides][individual][timestep]
-        for(int x=0; x<tides; x++)
+        int ***simEnergy = new int **[simTides]; //[tides][individual][timestep]
+        for(int x=0; x<simTides; x++)
         {
             simEnergy[x] = new int *[N];   //create a pointer that is eMax units long
             for(int i=0; i<N; i++) //in each of those indices
@@ -1524,8 +1528,8 @@ int main()
             }
         }
 
-        double ***simMating = new double **[tides];
-        for(int x=0; x<tides; x++)
+        double ***simMating = new double **[simTides];
+        for(int x=0; x<simTides; x++)
         {
             simMating[x] = new double *[N];   //create a pointer that is eMax units long
             for(int i=0; i<N; i++) //in each of those indices
@@ -1534,8 +1538,8 @@ int main()
             }
         }
 
-        double ***simAlive = new double **[tides];
-        for(int x=0; x<tides; x++)
+        double ***simAlive = new double **[simTides];
+        for(int x=0; x<simTides; x++)
         {
             simAlive[x] = new double *[N];   //create a pointer that is eMax units long
             for(int i=0; i<N; i++) //in each of those indices
@@ -1544,8 +1548,8 @@ int main()
             }
         }
 
-        double ***simTimeout = new double **[tides];
-        for(int x=0; x<tides; x++)
+        double ***simTimeout = new double **[simTides];
+        for(int x=0; x<simTides; x++)
         {
             simTimeout[x] = new double *[N];   //create a pointer that is eMax units long
             for(int i=0; i<N; i++) //in each of those indices
@@ -1554,8 +1558,8 @@ int main()
             }
         }
 
-        char ***simBehav = new char **[tides];
-        for(int x=0; x<tides; x++)
+        char ***simBehav = new char **[simTides];
+        for(int x=0; x<simTides; x++)
         {
             simBehav[x] = new char *[N];   //create a pointer that is eMax units long
             for(int i=0; i<N; i++) //in each of those indices
@@ -1569,7 +1573,7 @@ int main()
         for(int z = 0; z < N; z++)
         {
             double random_double = dist(engine);
-            if(random_double > 0.5)
+            if(random_double < q)
             {
                 simSizes[z] = 1; //large 
 
@@ -1606,7 +1610,7 @@ int main()
             }
         }
 
-        for(int tide = 0; tide < tides; tide ++)
+        for(int tide = 0; tide < simTides; tide ++)
         {
             for(int z = 0; z < N; z ++)
             {
@@ -1622,7 +1626,7 @@ int main()
         ArrayContainer *simOutput =  Sim(N,
                                         eMax, 
                                         tSteps, 
-                                        tides, 
+                                        simTides, 
                                         HTcost, 
                                         pMateL,
                                         pMateS, 
@@ -1674,7 +1678,7 @@ int main()
         for(int z=0; z<N; z++)
         {
             simMatingOut << simMating[0][z][0];
-            for(int tide=0; tide<tides; tide++)
+            for(int tide=0; tide<simTides; tide++)
             {
                 int tStart;
                 if(tide == 0)
@@ -1702,7 +1706,7 @@ int main()
         for(int z=0; z<N; z++)
         {
             simTimeoutOut << simTimeout[0][z][0];
-            for(int tide=0; tide<tides; tide++)
+            for(int tide=0; tide<simTides; tide++)
             {
                 int tStart;
                 if(tide == 0)
@@ -1730,7 +1734,7 @@ int main()
         for(int z=0; z<N; z++)
         {
             simAliveOut << simAlive[0][z][0];
-            for(int tide=0; tide<tides; tide++)
+            for(int tide=0; tide<simTides; tide++)
             {
                 int tStart;
                 if(tide == 0)
@@ -1758,7 +1762,7 @@ int main()
         for(int z=0; z<N; z++)
         {
             simEnergyOut << simEnergy[0][z][0];
-            for(int tide=0; tide<tides; tide++)
+            for(int tide=0; tide<simTides; tide++)
             {
                 int tStart;
                 if(tide == 0)
@@ -1786,7 +1790,7 @@ int main()
         for(int z=0; z<N; z++)
         {
             simBehavOut << simBehav[0][z][0];
-            for(int tide=0; tide<tides; tide++)
+            for(int tide=0; tide<simTides; tide++)
             {
                 int tStart;
                 if(tide == 0)

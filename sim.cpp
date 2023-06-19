@@ -7,7 +7,7 @@ ArrayContainer* Sim(
     int N,
     int eMax, 
     int tSteps, 
-    int tides, 
+    int simTides, 
     int HTcost, 
     double* pMateL,
     double* pMateS, 
@@ -55,10 +55,10 @@ ArrayContainer* Sim(
     {
         simEnergy[0][z][0] = eMax/2;
 
-        for(int tide = 0; tide < tides; tide ++) 
+        for(int tide = 0; tide < simTides; tide ++) 
         {
             int tStop;
-            if(tide == tides-1) //don't do the last timestep in the last tide
+            if(tide == simTides-1) //don't do the last timestep in the last tide
             {
                 tStop = tSteps-2;
             }
@@ -83,6 +83,8 @@ ArrayContainer* Sim(
 
                 //std::cout << "tideIndex = " << tideIndex << ", tIndex = " << tIndex << "\n";
                 //std::cout << "BEFORE target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n";
+
+                
 
                 if(simEnergy[tide][z][t] == 0) simAlive[tide][z][t] = 0;
                 if(simAlive[tide][z][t] == 0)

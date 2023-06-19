@@ -19,6 +19,7 @@ ArrayContainer* Markov(int counter,
                 int n,
                 bool stochasticHTcost,
                 double b, 
+                int multi,
                 double theta, 
                 double ptau,
                 bool postMatingTimeout,     
@@ -125,10 +126,10 @@ ArrayContainer* Markov(int counter,
                 phiSmallWav[tide][t] = propSmallWaving; //set the total proportion of rivals waving for that timestep
                 double effectOfWavers = phiLargeWav[tide][t] + (1-alpha) * phiSmallWav[tide][t];
                 double largepMateTopLine = (pFemMinList[tide][t] + pow(effectOfWavers, theta)) * (pFemMaxList[tide][t] - pFemMinList[tide][t]);
-                double largepMateBottomLine = phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t]) + b;
-
+                double largepMateBottomLine = ((phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t])) * multi) + b;
+                
                 double smallpMateTopLine = ((pFemMinList[tide][t] + pow(effectOfWavers, theta)) * (pFemMaxList[tide][t] - pFemMinList[tide][t])) * (1- zeta);
-                double smallpMateBottomLine = phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t]) + b;
+                double smallpMateBottomLine = ((phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t])) * multi) + b;
 
                 largePMate[tide][t] = largepMateTopLine / largepMateBottomLine; //calculate pMate from Rt
                 smallPMate[tide][t] = smallpMateTopLine / smallpMateBottomLine;
