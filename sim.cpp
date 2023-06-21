@@ -96,146 +96,149 @@ ArrayContainer* Sim(
                     simMating[tideIndex][z][tIndex] = simMating[tide][z][t];
                     simTimeout[tideIndex][z][tIndex] = 0;
                     //std::cout << "eIndex after dead = " << simEnergy[tideIndex][z][tIndex]<< "\n";
-                }  
-                if(tIndex == 0) //if we cross a tide boundary
-                {
-                    //std::cout << "crossed a tide boundary \n";
-                    if(stochasticHTcost==true)
+                } 
+                else
+                {  
+                    if(tIndex == 0) //if we cross a tide boundary
                     {
-                        random_double = dist(generator);
-                        if(random_double < 0.25){
-                            eHTindex = simEnergy[tide][z][t] - (HTcost - 1);
-                        }
-                        else if(random_double > 0.25 && random_double < 0.75)
+                        //std::cout << "crossed a tide boundary \n";
+                        if(stochasticHTcost==true)
                         {
-                            eHTindex = simEnergy[tide][z][t] - (HTcost);
-                        }
-                        else if(random_double > 0.75)
-                        {
-                            eHTindex = simEnergy[tide][z][t] - (HTcost + 1);
-                        }
-                    }
-                    else
-                    {
-                        eHTindex = simEnergy[tide][z][t] - HTcost;
-                    }
-
-                    if(eHTindex<0) eHTindex=0;
-
-                    simEnergy[tideIndex][z][tIndex] = eHTindex; 
-                }
-                else 
-                {
-                    if(simTimeout[tide][z][t] == 1)
-                    {
-                        //std::cout << "TIMEOUT \n";
-                        simEnergy[tideIndex][z][tIndex] = simEnergy[tide][z][t];
-                        simBehav[tide][z][t] = 'T';
-                        simMating[tideIndex][z][tIndex] = simMating[tide][z][t];
-
-                        random_double = dist(generator);
-                        if(random_double < ptau)
-                        {
-                            simTimeout[tideIndex][z][tIndex] = 0;
-                        }
-                        else
-                        {
-                            simTimeout[tideIndex][z][tIndex] = 1;
-                        }         
-                    }
-                    else
-                    {
-                        random_double = dist(generator);
-                        if(simSizes[z] == 1)
-                        {
-                            //std::cout << "energy index for strat = " << simEnergy[tide][z][t] << "\n";
-                            if(random_double < largeSimStrat[simEnergy[tide][z][t]][t])
-                            {
-                                simBehav[tide][z][t] = 'W';
-                            }
-                            else
-                            {
-                                simBehav[tide][z][t] = 'F';
-                            }
-
-                        }
-                        else
-                        {
-                            //std::cout << "energy index for strat = " << simEnergy[tide][z][t] << "\n";
-                            if(random_double < smallSimStrat[simEnergy[tide][z][t]][t])
-                            {
-                                simBehav[tide][z][t] = 'W';
-                            }
-                            else
-                            {
-                                simBehav[tide][z][t] = 'F';
-                            }
-                        }
-
-                        if(simBehav[tide][z][t] == 'F')
-                        {
-                            //std::cout << "FORAGING \n";
-                            int forGains = binomial_dist(generator);
                             random_double = dist(generator);
+                            if(random_double < 0.25){
+                                eHTindex = simEnergy[tide][z][t] - (HTcost - 1);
+                            }
+                            else if(random_double > 0.25 && random_double < 0.75)
+                            {
+                                eHTindex = simEnergy[tide][z][t] - (HTcost);
+                            }
+                            else if(random_double > 0.75)
+                            {
+                                eHTindex = simEnergy[tide][z][t] - (HTcost + 1);
+                            }
+                        }
+                        else
+                        {
+                            eHTindex = simEnergy[tide][z][t] - HTcost;
+                        }
 
-                            if(random_double > 0.25 && random_double < 0.75) forGains = forGains - 1;
-                            if(random_double > 0.75) forGains = forGains - 2;
-                            //std::cout << "foraging gains = " << forGains << "\n";
-                            simEnergy[tideIndex][z][tIndex] = simEnergy[tide][z][t] + forGains;
-                            if(simEnergy[tideIndex][z][tIndex] < 0) simEnergy[tideIndex][z][tIndex] = 0;
-                            if(simEnergy[tideIndex][z][tIndex] > (eMax-1)) simEnergy[tideIndex][z][tIndex] = eMax-1;
+                        if(eHTindex<0) eHTindex=0;
 
+                        simEnergy[tideIndex][z][tIndex] = eHTindex; 
+                    }
+                    else 
+                    {
+                        if(simTimeout[tide][z][t] == 1)
+                        {
+                            //std::cout << "TIMEOUT \n";
+                            simEnergy[tideIndex][z][tIndex] = simEnergy[tide][z][t];
+                            simBehav[tide][z][t] = 'T';
                             simMating[tideIndex][z][tIndex] = simMating[tide][z][t];
-                            simTimeout[tideIndex][z][tIndex] = 0;
+
+                            random_double = dist(generator);
+                            if(random_double < ptau)
+                            {
+                                simTimeout[tideIndex][z][tIndex] = 0;
+                            }
+                            else
+                            {
+                                simTimeout[tideIndex][z][tIndex] = 1;
+                            }         
                         }
                         else
                         {
-                            //std::cout << "WAVING \n";
-                            int wavCo = waveCost;
-
                             random_double = dist(generator);
-                            if(random_double > 0.25 && random_double < 0.75) wavCo = wavCo + 1;
-                            if(random_double > 0.75) wavCo = wavCo + 2;
-                            //std::cout << "wave costs = " << wavCo << "\n";
-
-                            simEnergy[tideIndex][z][tIndex] = simEnergy[tide][z][t] - wavCo;
-                            if(simEnergy[tideIndex][z][tIndex] < 0) simEnergy[tideIndex][z][tIndex] = 0;
-                            if(simEnergy[tideIndex][z][tIndex] > (eMax-1)) simEnergy[tideIndex][z][tIndex] = eMax-1;
-                            random_double = dist(generator);
-
-                            if(simSizes[z] == 1){
-                                if(random_double < pMateL[t])
+                            if(simSizes[z] == 1)
+                            {
+                                //std::cout << "energy index for strat = " << simEnergy[tide][z][t] << "\n";
+                                if(random_double < largeSimStrat[simEnergy[tide][z][t]][t])
                                 {
-                                    simMating[tideIndex][z][tIndex]  = simMating[tide][z][t] + 1;
-                                    simTimeout[tideIndex][z][tIndex] = 1;
+                                    simBehav[tide][z][t] = 'W';
                                 }
                                 else
                                 {
-                                    simMating[tideIndex][z][tIndex]  = simMating[tide][z][t];
-                                    simTimeout[tideIndex][z][tIndex] = 0;
+                                    simBehav[tide][z][t] = 'F';
                                 }
 
                             }
                             else
                             {
-                                if(random_double < pMateS[t])
+                                //std::cout << "energy index for strat = " << simEnergy[tide][z][t] << "\n";
+                                if(random_double < smallSimStrat[simEnergy[tide][z][t]][t])
                                 {
-                                    simMating[tideIndex][z][tIndex]  = simMating[tide][z][t] + 1;
-                                    simTimeout[tideIndex][z][tIndex] = 1;
+                                    simBehav[tide][z][t] = 'W';
                                 }
                                 else
                                 {
-                                    simMating[tideIndex][z][tIndex]  = simMating[tide][z][t];
-                                    simTimeout[tideIndex][z][tIndex] = 0;
+                                    simBehav[tide][z][t] = 'F';
                                 }
                             }
 
+                            if(simBehav[tide][z][t] == 'F')
+                            {
+                                //std::cout << "FORAGING \n";
+                                int forGains = binomial_dist(generator);
+                                random_double = dist(generator);
+
+                                if(random_double > 0.25 && random_double < 0.75) forGains = forGains - 1;
+                                if(random_double > 0.75) forGains = forGains - 2;
+                                //std::cout << "foraging gains = " << forGains << "\n";
+                                simEnergy[tideIndex][z][tIndex] = simEnergy[tide][z][t] + forGains;
+                                if(simEnergy[tideIndex][z][tIndex] < 0) simEnergy[tideIndex][z][tIndex] = 0;
+                                if(simEnergy[tideIndex][z][tIndex] > (eMax-1)) simEnergy[tideIndex][z][tIndex] = eMax-1;
+
+                                simMating[tideIndex][z][tIndex] = simMating[tide][z][t];
+                                simTimeout[tideIndex][z][tIndex] = 0;
+                            }
+                            else
+                            {
+                                //std::cout << "WAVING \n";
+                                int wavCo = waveCost;
+
+                                random_double = dist(generator);
+                                if(random_double > 0.25 && random_double < 0.75) wavCo = wavCo + 1;
+                                if(random_double > 0.75) wavCo = wavCo + 2;
+                                //std::cout << "wave costs = " << wavCo << "\n";
+
+                                simEnergy[tideIndex][z][tIndex] = simEnergy[tide][z][t] - wavCo;
+                                if(simEnergy[tideIndex][z][tIndex] < 0) simEnergy[tideIndex][z][tIndex] = 0;
+                                if(simEnergy[tideIndex][z][tIndex] > (eMax-1)) simEnergy[tideIndex][z][tIndex] = eMax-1;
+                                random_double = dist(generator);
+
+                                if(simSizes[z] == 1){
+                                    if(random_double < pMateL[t])
+                                    {
+                                        simMating[tideIndex][z][tIndex]  = simMating[tide][z][t] + 1;
+                                        simTimeout[tideIndex][z][tIndex] = 1;
+                                    }
+                                    else
+                                    {
+                                        simMating[tideIndex][z][tIndex]  = simMating[tide][z][t];
+                                        simTimeout[tideIndex][z][tIndex] = 0;
+                                    }
+
+                                }
+                                else
+                                {
+                                    if(random_double < pMateS[t])
+                                    {
+                                        simMating[tideIndex][z][tIndex]  = simMating[tide][z][t] + 1;
+                                        simTimeout[tideIndex][z][tIndex] = 1;
+                                    }
+                                    else
+                                    {
+                                        simMating[tideIndex][z][tIndex]  = simMating[tide][z][t];
+                                        simTimeout[tideIndex][z][tIndex] = 0;
+                                    }
+                                }
+
+                            }
                         }
 
-                        if(simEnergy[tideIndex][z][tIndex] ==0 ) simAlive[tideIndex][z][tIndex] = 0;
 
                     }
                 }
+                if(simEnergy[tideIndex][z][tIndex] ==0 ) simAlive[tideIndex][z][tIndex] = 0;
                 //std::cout << "AFTER target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n\n";
             }
         }

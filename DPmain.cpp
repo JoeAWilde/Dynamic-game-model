@@ -12,7 +12,7 @@
 
 // Initialising...
 // Array dimensions
-const int eMax                  = 101; //energy levels
+const int eMax                   = 51; //energy levels
 const int tSteps                = 101; //timeSteps
 const int tides                  = 60; //tides (fixed number)
 
@@ -22,7 +22,7 @@ const bool stochasticHTcost     = true; //is the high tide cost fixed or stochas
 
 // Costs
 const int waveCost                 = 5; //cost of waving
-const double ptau              = 0.005; //probability of returning to non-timeout array
+const double ptau               = 0.01; //probability of returning to non-timeout array
 const bool postMatingTimeout    = true;
 const int mateBonus                = 5; //fitness bonus from mating
 const double pMort           = 0.00001; //probability of death in every timeStep
@@ -40,7 +40,7 @@ const double pFemMin           = 0.001;
 const int multi                   = 20;
 
 //Two morphs parameters
-const double q                  = 0.5;
+const double q                  = 1.0;
 const double alpha              = 0.25;
 const double zeta               = 0.75;
 
