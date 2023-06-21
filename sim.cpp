@@ -86,10 +86,10 @@ ArrayContainer* Sim(
 
                 
 
-                if(simEnergy[tide][z][t] == 0) simAlive[tide][z][t] = 0;
-                if(simAlive[tide][z][t] == 0)
+                if(simEnergy[tide][z][t] == 0 ) 
                 {
                     //std::cout << "DEAD \n";
+                    simAlive[tide][z][t] = 0;
                     simAlive[tideIndex][z][tIndex] = 0;
                     simBehav[tide][z][t] = 'D';
                     simEnergy[tideIndex][z][tIndex] = 0;
@@ -238,7 +238,11 @@ ArrayContainer* Sim(
 
                     }
                 }
-                if(simEnergy[tideIndex][z][tIndex] ==0 ) simAlive[tideIndex][z][tIndex] = 0;
+                if(simEnergy[tideIndex][z][tIndex] ==0 ) 
+                {
+                    simAlive[tideIndex][z][tIndex] = 0;
+                    simEnergy[tideIndex][z][tIndex] = 0;
+                }
                 //std::cout << "AFTER target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n\n";
             }
         }

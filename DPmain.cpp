@@ -40,7 +40,7 @@ const double pFemMin           = 0.001;
 const int multi                   = 20;
 
 //Two morphs parameters
-const double q                  = 1.0;
+const double q                   = 0.5;
 const double alpha              = 0.25;
 const double zeta               = 0.75;
 
