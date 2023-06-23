@@ -238,11 +238,15 @@ ArrayContainer* Sim(
 
                     }
                 }
+<<<<<<< Updated upstream
                 if(simEnergy[tideIndex][z][tIndex] ==0 ) 
                 {
                     simAlive[tideIndex][z][tIndex] = 0;
                     simEnergy[tideIndex][z][tIndex] = 0;
                 }
+=======
+                if(simEnergy[tideIndex][z][tIndex] ==0 ) simAlive[tideIndex][z][tIndex] = 0;
+>>>>>>> Stashed changes
                 //std::cout << "AFTER target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n\n";
             }
         }
