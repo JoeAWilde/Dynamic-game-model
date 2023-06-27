@@ -125,19 +125,27 @@ ArrayContainer* Markov(int counter,
                 phiLargeWav[tide][t] = propLargeWaving; //set the total proportion of rivals waving for that timestep
                 phiSmallWav[tide][t] = propSmallWaving; //set the total proportion of rivals waving for that timestep
                 double effectOfWavers = phiLargeWav[tide][t] + (1-alpha) * phiSmallWav[tide][t];
-                double largepMateTopLine = (pFemMinList[tide][t] + pow(effectOfWavers, theta)) * (pFemMaxList[tide][t] - pFemMinList[tide][t]);
+                double largepMateTopLine = pFemMinList[tide][t] + pow(effectOfWavers, theta) * (pFemMaxList[tide][t] - pFemMinList[tide][t]);
                 double largepMateBottomLine = ((phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t])) * multi) + b;
                 
-                double smallpMateTopLine = ((pFemMinList[tide][t] + pow(effectOfWavers, theta)) * (pFemMaxList[tide][t] - pFemMinList[tide][t])) * (1- zeta);
+                double smallpMateTopLine = (pFemMinList[tide][t] + pow(effectOfWavers, theta) * (pFemMaxList[tide][t] - pFemMinList[tide][t])) * (1- zeta);
                 double smallpMateBottomLine = ((phiLargeWav[tide][t] + ((1 - zeta) * phiSmallWav[tide][t])) * multi) + b;
 
                 largePMate[tide][t] = largepMateTopLine / largepMateBottomLine; //calculate pMate from Rt
                 smallPMate[tide][t] = smallpMateTopLine / smallpMateBottomLine;
 
+                //std::cout << "t = " << t << "\n";
+                /* std::cout << "largepMateTopLine = " << largepMateTopLine << "\n";
+                std::cout << "largepMateBottomLine = " << largepMateBottomLine << "\n";
+                std::cout << "smallpMateTopLine = " << smallpMateTopLine << "\n";
+                std::cout << "smallpMateBottomLine = " << smallpMateBottomLine << "\n\n"; */
+                /* std::cout << "largePMate[" << tide <<"][" << t << "] = " << largePMate[tide][t] << "\n";
+                std::cout << "smallPMate[" << tide <<"][" << t << "] = " << smallPMate[tide][t] << "\n"; */
+
                 if(largePMate[tide][t] > 1.0) largePMate[tide][t] = 1.0; //resets probability of mating within 1
                 if(smallPMate[tide][t] > 1.0) smallPMate[tide][t] = 1.0; //resets probability of mating within 1
 
-                for(int e=0; e<eMax; e++) //cycle through all energy levels
+                for(int e=1; e<eMax; e++) //cycle through all energy levels
                 {          
                     //FORAGING
                     for(int k=0; k<=n; k++)
@@ -226,14 +234,16 @@ ArrayContainer* Markov(int counter,
             smallFreqDist[0][tideIndex][0][timeIndex] += (smallPropForSum * pMort) + (smallPropWavSum * (pMort * pWaveMort)) + (smallPropTimeoutSum * pMort); //put the dead in e=0 in the next time step
 
 
-            /* double largePropAliveNonTimeout = 0.0;
+            //Rescale energy levels to to be of proportion left alive
+            double largePropAliveNonTimeout = 0.0;
             double smallPropAliveNonTimeout = 0.0;
 
             double largePropAliveTimeout = 0.0;
             double smallPropAliveTimeout = 0.0;
 
-            for(int e = 0; e < eMax; e++)
+            for(int e = 1; e < eMax; e++)
             {
+
                 largePropAliveNonTimeout += largeFreqDist[0][tide][e][t];
                 smallPropAliveNonTimeout += smallFreqDist[0][tide][e][t];
 
@@ -244,24 +254,37 @@ ArrayContainer* Markov(int counter,
                 }
             }
 
+            if(largePropAliveNonTimeout == 0.0) largePropAliveNonTimeout = 1.0;
+            if(smallPropAliveNonTimeout == 0.0) smallPropAliveNonTimeout = 1.0;
+
+            if(largePropAliveTimeout == 0.0) largePropAliveTimeout = 1.0;
+            if(smallPropAliveTimeout == 0.0) smallPropAliveTimeout = 1.0;
+
+            /* std::cout << "largePropAliveNonTimeout = " << largePropAliveNonTimeout << "\n";
+            std::cout << "smallPropAliveNonTimeout = " << smallPropAliveNonTimeout << "\n\n";
+
+            std::cout << "largePropAliveTimeout = " << largePropAliveTimeout << "\n";
+            std::cout << "smallPropAliveTimeout = " << smallPropAliveTimeout << "\n\n"; */
+
             for(int e = 0; e<eMax; e++) //rescale the next timestep so that it is a proportion of those alive
             {
-                largeFreqDist[0][tideIndex][e][timeIndex] = (largeFreqDist[0][tideIndex][e][timeIndex]/largePropAliveTimeout) * q;
-                if(q!=1) smallFreqDist[0][tideIndex][e][timeIndex] = (smallFreqDist[0][tideIndex][e][timeIndex] / smallPropAliveNonTimeout) * (1-q);
+                //std::cout << "e = " << e << "\n"; 
+                largeFreqDist[0][tideIndex][e][timeIndex] = (largeFreqDist[0][tideIndex][e][timeIndex] / largePropAliveNonTimeout);
+                if(q!=1) smallFreqDist[0][tideIndex][e][timeIndex] = (smallFreqDist[0][tideIndex][e][timeIndex] / smallPropAliveNonTimeout);
 
                 if(postMatingTimeout == true)
                 {
-                    largeFreqDist[1][tideIndex][e][timeIndex] = (largeFreqDist[1][tideIndex][e][timeIndex]/largePropAliveTimeout) * q;
-                    if(q!=1) smallFreqDist[1][tideIndex][e][timeIndex] = (smallFreqDist[1][tideIndex][e][timeIndex]/smallPropAliveTimeout) * (1-q);
+                    largeFreqDist[1][tideIndex][e][timeIndex] = (largeFreqDist[1][tideIndex][e][timeIndex] / largePropAliveTimeout);
+                    if(q!=1) smallFreqDist[1][tideIndex][e][timeIndex] = (smallFreqDist[1][tideIndex][e][timeIndex] / smallPropAliveTimeout);
                 }
-            } */
+                /* std::cout << "largeFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << largeFreqDist[1][tideIndex][e][timeIndex] << "\n";
+                std::cout << "smallFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << smallFreqDist[1][tideIndex][e][timeIndex] << "\n\n"; */
+            }
 
         }
 
     }
     ArrayContainer* masterArray = new ArrayContainer();
-
-    //std::cout << "end of markov smallPMate[2][0] = " << smallPMate[2][0] << "\n\n";
 
     masterArray->array1 = largeFreqDist;
     masterArray->array2 = largePMate;

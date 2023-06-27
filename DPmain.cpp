@@ -33,16 +33,16 @@ const int n                        = 4; //max energy gain from foraging
 const double p                   = 0.9; //probability of success on each trial
 
 // Mating parameters
-const double theta              = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
-const double b                   = 1.0; 
-const double pFemMax             = 1.0;
-const double pFemMin           = 0.001;
-const int multi                   = 20;
+const double theta               = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
+const double b                    = 1.0; 
+const double pFemMax             = 1.00;
+const double pFemMin             = 0.01;
+const int multi                    = 20;
 
 //Two morphs parameters
-const double q                   = 0.5;
-const double alpha              = 0.25;
-const double zeta               = 0.75;
+const double q                   = 1.0;
+const double alpha              = 0.5;
+const double zeta               = 0.5;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -70,7 +70,7 @@ int biggestCell[2]; //looks for the biggest difference between two strategies
 bool sim                           = true;
 
 //Simulation paramters
-int N                               = 200;
+int N                              = 1000;
 int simTides                      = tides;
 
 int main()

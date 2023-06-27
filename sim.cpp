@@ -204,12 +204,18 @@ ArrayContainer* Sim(
                                 if(simEnergy[tideIndex][z][tIndex] < 0) simEnergy[tideIndex][z][tIndex] = 0;
                                 if(simEnergy[tideIndex][z][tIndex] > (eMax-1)) simEnergy[tideIndex][z][tIndex] = eMax-1;
                                 random_double = dist(generator);
-
                                 if(simSizes[z] == 1){
                                     if(random_double < pMateL[t])
                                     {
                                         simMating[tideIndex][z][tIndex]  = simMating[tide][z][t] + 1;
-                                        simTimeout[tideIndex][z][tIndex] = 1;
+                                        if(postMatingTimeout)
+                                        {
+                                            simTimeout[tideIndex][z][tIndex] = 1;
+                                        }
+                                        else 
+                                        {
+                                            simTimeout[tideIndex][z][tIndex] = 0;
+                                        }
                                     }
                                     else
                                     {
@@ -223,7 +229,14 @@ ArrayContainer* Sim(
                                     if(random_double < pMateS[t])
                                     {
                                         simMating[tideIndex][z][tIndex]  = simMating[tide][z][t] + 1;
-                                        simTimeout[tideIndex][z][tIndex] = 1;
+                                        if(postMatingTimeout)
+                                        {
+                                            simTimeout[tideIndex][z][tIndex] = 1;
+                                        }
+                                        else 
+                                        {
+                                            simTimeout[tideIndex][z][tIndex] = 0;
+                                        }
                                     }
                                     else
                                     {
@@ -231,21 +244,19 @@ ArrayContainer* Sim(
                                         simTimeout[tideIndex][z][tIndex] = 0;
                                     }
                                 }
-
                             }
                         }
-
-
                     }
                 }
-                if(simEnergy[tideIndex][z][tIndex] ==0 ) 
-                {
-                    simAlive[tideIndex][z][tIndex] = 0;
-                    simEnergy[tideIndex][z][tIndex] = 0;
-                }
-                //std::cout << "AFTER target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n\n";
             }
+            if(simEnergy[tideIndex][z][tIndex] == 0) 
+            {
+                simAlive[tideIndex][z][tIndex] = 0;
+                simEnergy[tideIndex][z][tIndex] = 0;
+            }
+                //std::cout << "AFTER target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n\n";
         }
+        
     }
     ArrayContainer* masterArray = new ArrayContainer();
 
