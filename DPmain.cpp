@@ -22,13 +22,8 @@ const bool stochasticHTcost     = true; //is the high tide cost fixed or stochas
 
 // Costs
 const int waveCost                 = 5; //cost of waving
-<<<<<<< Updated upstream
-const double ptau                = 0.1; //probability of returning to non-timeout array
-const bool postMatingTimeout    = false;
-=======
 const double ptau               = 0.01; //probability of returning to non-timeout array
 const bool postMatingTimeout    = true;
->>>>>>> Stashed changes
 const int mateBonus                = 5; //fitness bonus from mating
 const double pMort           = 0.00001; //probability of death in every timeStep
 const double pWaveMort             = 2; //multiplier for how much more mortality occurs when you wave
