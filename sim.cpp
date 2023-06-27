@@ -248,6 +248,7 @@ ArrayContainer* Sim(
                         }
                     }
                 }
+                //std::cout << "AFTER target simEnergy[" << tideIndex << "][" << z << "][" << tIndex << "] = " << simEnergy[tideIndex][z][tIndex] << "\n\n";
             }
             if(simEnergy[tideIndex][z][tIndex] == 0) 
             {
