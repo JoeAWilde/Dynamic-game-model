@@ -235,50 +235,48 @@ ArrayContainer* Markov(int counter,
 
 
             //Rescale energy levels to to be of proportion left alive
-            double largePropAliveNonTimeout = 0.0;
-            double smallPropAliveNonTimeout = 0.0;
-
-            double largePropAliveTimeout = 0.0;
-            double smallPropAliveTimeout = 0.0;
+            double largePropAlive = 0.0;
+            double smallPropAlive = 0.0;
 
             for(int e = 1; e < eMax; e++)
             {
 
-                largePropAliveNonTimeout += largeFreqDist[0][tide][e][t];
-                smallPropAliveNonTimeout += smallFreqDist[0][tide][e][t];
+                largePropAlive += largeFreqDist[0][tide][e][t];
+                smallPropAlive += smallFreqDist[0][tide][e][t];
 
                 if(postMatingTimeout == true)
                 {
-                    largePropAliveTimeout += largeFreqDist[1][tide][e][t];
-                    smallPropAliveTimeout += smallFreqDist[1][tide][e][t];
+                    largePropAlive += largeFreqDist[1][tide][e][t];
+                    smallPropAlive += smallFreqDist[1][tide][e][t];
                 }
             }
 
-            if(largePropAliveNonTimeout == 0.0) largePropAliveNonTimeout = 1.0;
-            if(smallPropAliveNonTimeout == 0.0) smallPropAliveNonTimeout = 1.0;
+            if(largePropAlive == 0.0) largePropAlive = 1.0;
+            if(smallPropAlive == 0.0) smallPropAlive = 1.0;
 
-            if(largePropAliveTimeout == 0.0) largePropAliveTimeout = 1.0;
-            if(smallPropAliveTimeout == 0.0) smallPropAliveTimeout = 1.0;
+            //std::cout << "largePropAlive = " << largePropAlive << "\n";
+            /*std::cout << "smallPropAliveNonTimeout = " << smallPropAliveNonTimeout << "\n\n"; */
 
-            /* std::cout << "largePropAliveNonTimeout = " << largePropAliveNonTimeout << "\n";
-            std::cout << "smallPropAliveNonTimeout = " << smallPropAliveNonTimeout << "\n\n";
-
-            std::cout << "largePropAliveTimeout = " << largePropAliveTimeout << "\n";
-            std::cout << "smallPropAliveTimeout = " << smallPropAliveTimeout << "\n\n"; */
+            //std::cout << "largePropAlive = " << largePropAlive << "\n";
+            //std::cout << "smallPropAliveTimeout = " << smallPropAliveTimeout << "\n\n";
 
             for(int e = 0; e<eMax; e++) //rescale the next timestep so that it is a proportion of those alive
             {
                 //std::cout << "e = " << e << "\n"; 
-                largeFreqDist[0][tideIndex][e][timeIndex] = (largeFreqDist[0][tideIndex][e][timeIndex] / largePropAliveNonTimeout);
-                if(q!=1) smallFreqDist[0][tideIndex][e][timeIndex] = (smallFreqDist[0][tideIndex][e][timeIndex] / smallPropAliveNonTimeout);
+                //std::cout << "before largeFreqDist[0][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << largeFreqDist[0][tideIndex][e][timeIndex] << "\n";
+                largeFreqDist[0][tideIndex][e][timeIndex] = (largeFreqDist[0][tideIndex][e][timeIndex] / largePropAlive);
+                if(q!=1) smallFreqDist[0][tideIndex][e][timeIndex] = (smallFreqDist[0][tideIndex][e][timeIndex] / smallPropAlive);
+                //std::cout << "after largeFreqDist[0][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << largeFreqDist[0][tideIndex][e][timeIndex] << "\n";
+
 
                 if(postMatingTimeout == true)
                 {
-                    largeFreqDist[1][tideIndex][e][timeIndex] = (largeFreqDist[1][tideIndex][e][timeIndex] / largePropAliveTimeout);
-                    if(q!=1) smallFreqDist[1][tideIndex][e][timeIndex] = (smallFreqDist[1][tideIndex][e][timeIndex] / smallPropAliveTimeout);
+                    //std::cout << "before largeFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << largeFreqDist[1][tideIndex][e][timeIndex] << "\n";
+                    largeFreqDist[1][tideIndex][e][timeIndex] = (largeFreqDist[1][tideIndex][e][timeIndex] / largePropAlive);
+                    if(q!=1) smallFreqDist[1][tideIndex][e][timeIndex] = (smallFreqDist[1][tideIndex][e][timeIndex] / smallPropAlive);
+                    //std::cout << "after largeFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << largeFreqDist[1][tideIndex][e][timeIndex] << "\n\n";
+                    /*std::cout << "smallFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << smallFreqDist[1][tideIndex][e][timeIndex] << "\n\n"; */
                 }
-                /* std::cout << "largeFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << largeFreqDist[1][tideIndex][e][timeIndex] << "\n";
-                std::cout << "smallFreqDist[1][" << tideIndex << "][" << e << "][" << timeIndex << "] = " << smallFreqDist[1][tideIndex][e][timeIndex] << "\n\n"; */
             }
 
         }

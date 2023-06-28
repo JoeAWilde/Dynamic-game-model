@@ -14,7 +14,7 @@
 // Array dimensions
 const int eMax                   = 51; //energy levels
 const int tSteps                = 101; //timeSteps
-const int tides                  = 60; //tides (fixed number)
+const int tides                  = 30; //tides (fixed number)
 
 // High tide cost parameters
 const int HTcost                  = 10; //energetic cost of high tide
@@ -35,9 +35,9 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                    = 1.0; 
-const double pFemMax             = 1.00;
-const double pFemMin             = 0.01;
-const int multi                    = 20;
+const double pFemMax             = 0.1;
+const double pFemMin             = 0.1;
+const int multi                    = 0;
 
 //Two morphs parameters
 const double q                   = 1.0;
@@ -67,7 +67,7 @@ double HTCprob[3]     = {0.25, 0.5, 0.25}; //probability of getting each high ti
 double metCostProb[3] = {0.25, 0.5, 0.25}; //probability of getting each metabolic cost
 int biggestCell[2]; //looks for the biggest difference between two strategies
 
-bool sim                           = true;
+bool sim                           = false;
 
 //Simulation paramters
 int N                              = 1000;
@@ -691,7 +691,7 @@ int main()
     std::time_t end_time = std::chrono::system_clock::to_time_t(timeNow);
     std::cout << " total elapsed time = " << (elapsed_seconds.count())/60 <<"mins \n\n";
 
-    for(int i=0; i<2; i++)
+    /* for(int i=0; i<2; i++)
     {
         for(int tide=0; tide<tides; tide++)
         {
@@ -704,11 +704,11 @@ int main()
                 }
             }
         }
-    }
+    } */
 
 
 
-    ArrayContainer *markovOutput2 =  Markov(counter,
+    /* ArrayContainer *markovOutput2 =  Markov(counter,
                                                 tides,
                                                 eMax, 
                                                 tSteps, 
@@ -746,7 +746,7 @@ int main()
 
     smallFreqDist = markovOutput2->array4;
     smallPMate = markovOutput2->array5;
-    phiSmallWav = markovOutput2->array6;
+    phiSmallWav = markovOutput2->array6; */
 
     std::ofstream largeBRstratOut;
     std::ostringstream largeBRstratOutFilename;
