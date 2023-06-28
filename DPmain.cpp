@@ -12,9 +12,9 @@
 
 // Initialising...
 // Array dimensions
-const int eMax                   = 51; //energy levels
-const int tSteps                = 101; //timeSteps
-const int tides                  = 30; //tides (fixed number)
+const int eMax                    = 51; //energy levels
+const int tSteps                 = 101; //timeSteps
+const int tides                   = 60; //tides (fixed number)
 
 // High tide cost parameters
 const int HTcost                  = 10; //energetic cost of high tide
@@ -35,14 +35,14 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                    = 1.0; 
-const double pFemMax             = 0.1;
-const double pFemMin             = 0.1;
-const int multi                    = 0;
+const double pFemMax              = 1.0;
+const double pFemMin              = 0.1;
+const int multi                    = 20;
 
 //Two morphs parameters
-const double q                   = 1.0;
-const double alpha              = 0.5;
-const double zeta               = 0.5;
+const double q                    = 0.5;
+const double alpha                = 0.75;
+const double zeta                 = 0.5;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -51,15 +51,15 @@ const double slp2                = 0.8;
 const double slp3               = -1.3; */
 
 // Strategy and updating parameters
-const double error              = 0.07; //McNamara error function steepness
-const double lam                 = 0.4; //how much the strategy updates by
-const int countMax            = 200000; //maximum number of iterations allowed
-int counter                        = 0; //loop counter
-double largeMaxDiffStrat         = 1.0; //set the starting difference in strategy to be large to get the loop going
-double smallMaxDiffStrat         = 1.0;
-double largeMaxDiffFit           = 1.0; //set the starting difference in fitness to be large to get the loop going
-double smallMaxDiffFit           = 1.0; //set the starting difference in fitness to be large to get the loop going
-std::stringstream              outfile; //outputting files
+const double error               = 0.07; //McNamara error function steepness
+const double lam                  = 0.4; //how much the strategy updates by
+const int countMax             = 200000; //maximum number of iterations allowed
+int counter                         = 0; //loop counter
+double largeMaxDiffStrat          = 1.0; //set the starting difference in strategy to be large to get the loop going
+double smallMaxDiffStrat          = 1.0;
+double largeMaxDiffFit            = 1.0; //set the starting difference in fitness to be large to get the loop going
+double smallMaxDiffFit            = 1.0; //set the starting difference in fitness to be large to get the loop going
+std::stringstream               outfile; //outputting files
 
 // Lists
 double binom                        [n+1]; //probability of kth reward from binomial dist
@@ -67,7 +67,7 @@ double HTCprob[3]     = {0.25, 0.5, 0.25}; //probability of getting each high ti
 double metCostProb[3] = {0.25, 0.5, 0.25}; //probability of getting each metabolic cost
 int biggestCell[2]; //looks for the biggest difference between two strategies
 
-bool sim                           = false;
+bool sim                           = true;
 
 //Simulation paramters
 int N                              = 1000;
