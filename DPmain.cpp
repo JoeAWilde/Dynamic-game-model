@@ -35,14 +35,14 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                    = 1.0; 
-const double pFemMax              = 1.0;
-const double pFemMin              = 0.1;
+const double pFemMax              = 0.9;
+const double pFemMin              = 0.001;
 const int multi                    = 20;
 
 //Two morphs parameters
 const double q                    = 1.0;
-const double alpha                = 0.75;
-const double zeta                 = 0.75;
+const double alpha                = 0.0;
+const double zeta                 = 0.0;
 
 /* // pFemMax parameters
 const double intercept           = 0.1;
@@ -426,16 +426,20 @@ int main()
     {
         for(int t=0; t<tSteps; t++)
         {
-            pFemMaxList[tide][t] = pFemMax;
+            /* pFemMaxList[tide][t] = pFemMax;
+            pFemMinList[tide][t] = pFemMin; */
 
             if(t < 60)
             {
-                pFemMinList[tide][t] = pFemMin + 0.01 * t; 
+                pFemMinList[tide][t] = pFemMin + 0.0015 * t; 
+                pFemMaxList[tide][t] = pFemMax + 0.0015 * t; 
                 
             }
             else
             {
-                pFemMinList[tide][t] = pFemMinList[tide][t-1] -  (0.01 * 2);
+                pFemMinList[tide][t] = pFemMinList[tide][t-1] -  (0.0015 * 2);
+                pFemMaxList[tide][t] = pFemMaxList[tide][t-1] -  (0.0015 * 2);
+
             }
         }
     }
