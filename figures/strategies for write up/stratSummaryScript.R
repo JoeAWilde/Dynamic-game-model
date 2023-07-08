@@ -1,6 +1,9 @@
 library(tidyverse)
 library(ggpubr)
 library(ggplotify)
+library(officer)
+library(rvg)
+library(ggtext)
 
 rm(list=ls())
 
@@ -47,9 +50,13 @@ tides <- 60
 #       simEnergy$size[i] <- sizes[simEnergy$ID[i]]
 #     }
 # 
-#     meanEnergy <- aggregate(simEnergy, by = list(simEnergy$time, simEnergy$size), mean) %>%
-#       mutate(time = time - min(time)+1)
-# 
+#     meanEnergy <- aggregate(simEnergy$energy, by = list(simEnergy$time, simEnergy$size),
+#                             FUN = function(x) c(meanE = mean(x), sdE = sd(x)))
+#     
+#     meanEnergy$energy <- meanEnergy$x[,1]
+#     meanEnergy$sd_energy <- meanEnergy$x[,2]
+#     meanEnergy <- meanEnergy[,-3]
+#     names(meanEnergy) <- c("time", "size", "energy", "sd_energy")
 #     meanEnergy$size <- ifelse(meanEnergy$size == 0, "Small", "Large")
 # 
 #     simBehav <- read.table(paste(f, "/", z, "/simBehav.txt", sep = ""), sep = ",", header = F, fileEncoding="latin1") %>%
@@ -71,23 +78,25 @@ tides <- 60
 # 
 #     if(f == folders[1]) {
 #       mean_df <- data.frame(energy = meanEnergy$energy,
+#                             energy_sd = meanEnergy$sd_energy,
 #                             wave = meanWaving$wave,
 #                             time = meanEnergy$time,
 #                             size = meanEnergy$size,
 #                             strategy = ifelse(subfolders[1] == "",
 #                                               substring(f, first = 4),
-#                                               substring(z, 
+#                                               substring(z,
 #                                                         first = unlist(gregexpr(')', z))[1]+2))
 #       )
 #     } else {
 #       mean_df <- rbind(mean_df,
 #                        data.frame(energy = meanEnergy$energy,
+#                                   energy_sd = meanEnergy$sd_energy,
 #                                   wave = meanWaving$wave,
 #                                   time = meanEnergy$time,
 #                                   size = meanEnergy$size,
 #                                   strategy = ifelse(subfolders[1] == "",
 #                                                     substring(f, first = 4),
-#                                                     substring(z, 
+#                                                     substring(z,
 #                                                               first = unlist(gregexpr(')', z))[1]+2))
 #                        )
 #       )
@@ -131,11 +140,14 @@ df$alpha <- as.numeric(df$alpha)
 df$zeta <- as.numeric(df$zeta)
 df$q <- as.numeric(df$q)
 
+df$time <- df$time - 3060
+
 cFun <- colorRampPalette(c("orange","purple4"))
 cols <- cFun(2)
 
 plotList <- list()
 counter <- 1
+
 
 for(aa in unique(df$alpha)[c(1,3,2,4)]) {
   for(zz in unique(df$zeta)[c(1,3,2,4)]) {
@@ -154,7 +166,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       y_breaks <- NULL
     }
     
-    if(aa == 0.0) {
+    if(aa == 0.00) {
       x_breaks <- seq(0, 100, 25)
     } else {
       x_breaks <- NULL
@@ -166,7 +178,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0, 0.1), breaks = y_breaks) +
       scale_colour_manual(values = cols, name = "Size") +
-      theme_classic(base_size = 40) +
+      theme_classic(base_size = 50) +
       theme(legend.text=element_text(size=55), 
             legend.title = element_text(size = 55))
     
@@ -182,7 +194,13 @@ all_plot <- ggarrange(
   plotList[[1]],plotList[[2]],plotList[[3]],plotList[[4]],
   ncol = 4, nrow = 4, common.legend = T, legend = "right",
   widths = c(1.25, 1, 1, 1))
-#all_plot
+all_plot
+
+# doc <- read_pptx("figures/figures.pptx")
+# plot <- dml(ggobj = all_plot)
+# doc <- add_slide(doc, layout = "Title and Content", master = "Office Theme")
+# doc <- ph_with(x = doc, value = plot, location = ph_location_fullsize())
+# print(doc, target = "figures/figures.pptx")
 
 ggsave(plot = all_plot, "figures/q0.5 waving.png", units = "px", width = 7980, height = 7980)
 
@@ -219,7 +237,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0, 0.1), breaks = y_breaks) +
       scale_colour_manual(values = cols, name = "Size") +
-      theme_classic(base_size = 40) +
+      theme_classic(base_size = 50) +
       theme(legend.text=element_text(size=55), 
             legend.title = element_text(size = 55))
     
@@ -271,7 +289,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0, 0.1), breaks = y_breaks) +
       scale_colour_manual(values = cols, name = "Size") +
-      theme_classic(base_size = 40) +
+      theme_classic(base_size = 50) +
       theme(legend.text=element_text(size=55), 
             legend.title = element_text(size = 55))
     
@@ -318,13 +336,14 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       x_breaks <- NULL
     }
     
-    p <- ggplot(data = useDf,
-                aes(x = time, y = energy, colour = factor(size))) + 
-      geom_smooth(se = F, show.legend = legendBool, linewidth = 2) + 
+    p <- ggplot(data = useDf) + 
+      geom_smooth(aes(x = time, y = energy, colour = factor(size)),
+                  se = F, show.legend = legendBool, linewidth = 2) + 
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(15, 30), breaks = y_breaks) +
       scale_colour_manual(values = cols, name = "Size") +
-      theme_classic(base_size = 40) +
+      scale_fill_manual(values = cols, name = "Size") +
+      theme_classic(base_size = 50) +
       theme(legend.text=element_text(size=55), 
             legend.title = element_text(size = 55))
     
@@ -340,7 +359,7 @@ all_plot2 <- ggarrange(
   plotList2[[1]],plotList2[[2]],plotList2[[3]],plotList2[[4]],
   ncol = 4, nrow = 4, common.legend = T, legend = "right",
   widths = c(1.25, 1, 1, 1))
-#all_plot2
+all_plot2
 
 ggsave(plot = all_plot2, "figures/q0.5 energy.png", units = "px", width = 7980, height = 7980)
 
@@ -376,7 +395,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(15, 30), breaks = y_breaks) +
       scale_colour_manual(values = cols, name = "Size") +
-      theme_classic(base_size = 40) +
+      theme_classic(base_size = 50) +
       theme(legend.text=element_text(size=55), 
             legend.title = element_text(size = 55))
     
@@ -428,7 +447,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(15, 30), breaks = y_breaks) +
       scale_colour_manual(values = cols, name = "Size") +
-      theme_classic(base_size = 40) +
+      theme_classic(base_size = 50) +
       theme(legend.text=element_text(size=55), 
             legend.title = element_text(size = 55))
     
@@ -571,7 +590,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_discrete(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0, 60), breaks = y_breaks) + 
       scale_colour_manual(name = "Size", values = cols) +
-      theme_classic(base_size = 40) + 
+      theme_classic(base_size = 50) + 
       theme(legend.text = element_text(size = 55),
             legend.title = element_text(size = 55))
     plotList3[[counter]] <- p
@@ -627,7 +646,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_discrete(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0, 60), breaks = y_breaks) + 
       scale_colour_manual(name = "Size", values = cols) +
-      theme_classic(base_size = 40) + 
+      theme_classic(base_size = 50) + 
       theme(legend.text = element_text(size = 55),
             legend.title = element_text(size = 55))
     plotList3_2[[counter]] <- p
@@ -683,7 +702,7 @@ for(aa in unique(df$alpha)[c(1,3,2,4)]) {
       scale_x_discrete(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0, 60), breaks = y_breaks) + 
       scale_colour_manual(name = "Size", values = cols) +
-      theme_classic(base_size = 40) + 
+      theme_classic(base_size = 50) + 
       theme(legend.text = element_text(size = 55),
             legend.title = element_text(size = 55))
     plotList3_3[[counter]] <- p
@@ -828,7 +847,7 @@ for(aa in unique(adf$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0.25, 1), breaks = y_breaks) + 
       scale_colour_manual(name = "Size", values = cols) +
-      theme_classic(base_size = 40) + 
+      theme_classic(base_size = 50) + 
       theme(legend.text = element_text(size = 55),
             legend.title = element_text(size = 55))
     plotList4[[counter]] <- p
@@ -877,7 +896,7 @@ for(aa in unique(adf$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0.25, 1), breaks = y_breaks) + 
       scale_colour_manual(name = "Size", values = cols) +
-      theme_classic(base_size = 40) + 
+      theme_classic(base_size = 50) + 
       theme(legend.text = element_text(size = 55),
             legend.title = element_text(size = 55))
     plotList4_2[[counter]] <- p
@@ -926,7 +945,7 @@ for(aa in unique(adf$alpha)[c(1,3,2,4)]) {
       scale_x_continuous(name = "", breaks = x_breaks) + 
       scale_y_continuous(name = "", limits = c(0.25, 1), breaks = y_breaks) + 
       scale_colour_manual(name = "Size", values = cols) +
-      theme_classic(base_size = 40) + 
+      theme_classic(base_size = 50) + 
       theme(legend.text = element_text(size = 55),
             legend.title = element_text(size = 55))
     plotList4_3[[counter]] <- p
@@ -944,3 +963,182 @@ all_plot4_3 <- ggarrange(
 # all_plot4_2
 
 ggsave(plot = all_plot4_3, "figures/q0.75 mort.png", units = "px", width = 7980, height = 7980)
+
+# plot baseline strategy ####
+
+brl<-read.table("1) baseline (no game, refrac)/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave>0.3, 1, 0)
+
+a1<-ggplot(data=midTideL, aes(x = timestep, y = energy, fill = pWave))+
+  geom_tile()+
+  geom_hline(yintercept = c(seq(0.5,eMax-0.5, 1)), alpha = 0.2)+
+  geom_vline(xintercept = c(seq(0.5,tSteps-0.5, 1)), alpha = 0.2) +
+  scale_x_continuous(breaks = seq(0, tSteps, 20), 
+                     limits = c(0,tSteps+1))+
+  scale_y_continuous(breaks = seq(0,eMax, 10))+
+  scale_fill_gradientn(name = "Probability of \nwaving", 
+                       limits=c(0,1),colors = c(low = "white", medium = "goldenrod1", high = "goldenrod4"), 
+                       breaks = c(0, 0.5, 1))+
+  xlab("Time")+
+  ylab("Energy level") +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_text(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+  #ggtitle("\"Baseline\"")
+#a1
+ggsave(plot = a1, "figures/q1.0/baseline_strategy.png", units = "px", height = 5200, width = 7980)
+
+#plot strategy for game ####
+
+brl2<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl2)
+tides<-(length(brl2))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl2<-cbind(eLevels, brl2)
+
+vDfLength <- paste("V",(length(brl2)-1),sep="")
+
+dataLong2<-gather(data = brl2, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong2))
+dataLong2$timestep <- as.numeric(timestepNew)
+names(dataLong2)<-c("energy","timestep","pWave")
+
+dataLong2$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong2 <- subset(dataLong2, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong2$pWave <- as.numeric(dataLong2$pWave)
+
+midTideL2 <- subset(dataLong2, tide == (tides/2))
+
+midTideL2$bin <- ifelse(midTideL2$pWave>0.3, 1, 0)
+
+a2<-ggplot(data=midTideL2, aes(x = timestep, y = energy, fill = pWave))+
+  geom_tile()+
+  geom_hline(yintercept = c(seq(0.5,eMax-0.5, 1)), alpha = 0.2)+
+  geom_vline(xintercept = c(seq(0.5,tSteps-0.5, 1)), alpha = 0.2) +
+  scale_x_continuous(breaks = seq(0, tSteps, 20), 
+                     limits = c(0,tSteps+1))+
+  scale_y_continuous(breaks = seq(0,eMax, 10))+
+  scale_fill_gradientn(name = "Probability of \nwaving", 
+                       limits=c(0,1),colors = c(low = "white", medium = "blue", high = "navyblue"), 
+                       breaks = c(0, 0.5, 1))+
+  xlab("Time")+
+  ylab("Energy level") +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_text(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+  #ggtitle("\"Social game\"")
+#a2
+ggsave(plot = a2, "figures/q1.0/game_strategy.png", units = "px", height = 5200, width = 7980)
+
+
+#plot prop waving for baseline and game ####
+
+cols2 <- c("goldenrod1", "navyblue")
+
+p1 <- ggplot(data = df[df$strategy == "baseline (no game, refrac)" | df$strategy == "game",],
+             aes(x = time, y = wave, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5, show.legend = F) + 
+  scale_x_continuous(name = "Time") + 
+  scale_y_continuous(name = "Proportion waving", limits = c(0, 0.05),
+                     breaks = seq(0, 0.05, 0.01)) + 
+  scale_colour_manual(name = "Strategy", values = cols2,
+                      labels = c("Baseline", "Social game")) +
+  theme_classic(base_size = 35) + 
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25),
+        legend.key.width = unit(1.1, "cm"))
+#p1
+
+#ggsave(plot = p1, "figures/q1.0/BL_game_waving.png", units = "px", height = 4320, width = 7980)
+
+#plot energy for baseline and game ####
+
+p2 <- ggplot(data = df[df$strategy == "baseline (no game, refrac)" | df$strategy == "game",],
+             aes(x = time, y = energy, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5, show.legend = T) + 
+  scale_x_continuous(name = "Time") + 
+  scale_y_continuous(name = "Energy level", limits = c(15, 30),
+                     breaks = seq(15, 30, 5)) + 
+  scale_colour_manual(name = "Strategy", values = cols2,
+                      labels = c("Baseline", "Social game")) +
+  theme_classic(base_size = 35) + 
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25),
+        legend.key.width = unit(1.1, "cm"))
+#p2
+
+#ggsave(plot = p2, "figures/q1.0/BL_game_energy.png", units = "px", height = 4320, width = 7980)
+
+#plot grid ####
+
+gridPlot <- ggarrange(p1, p2, ncol = 2, nrow = 1, 
+                      labels = c("a)", "b)"), font.label = list(size = 50),
+                      hjust = 0, widths = c(1, 1.25))
+
+ggsave(plot = gridPlot, "figures/q1.0/grid.png", units = "px", height = 2400, width = 7980)
+
+#plot grid for var_F ####
+cols3 <- c("navyblue", "green4")
+
+p3 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin",],
+             aes(x = time, y = wave, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5, show.legend = F) + 
+  scale_x_continuous(name = "Time") + 
+  scale_y_continuous(name = "Proportion waving", limits = c(0, 0.05),
+                     breaks = seq(0, 0.05, 0.01)) + 
+  scale_colour_manual(values = cols3) +
+  theme_classic(base_size = 35) + 
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_text(size = 25),
+        legend.key.width = unit(1.1, "cm"))
+
+p4 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin",],
+             aes(x = time, y = energy, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5, show.legend = T) + 
+  scale_x_continuous(name = "Time") + 
+  scale_y_continuous(name = "Energy level", limits = c(15, 30),
+                     breaks = seq(15, 30, 5)) + 
+  scale_colour_manual(name = "Strategy", values = cols3,
+                      labels = c("Variable *f*","Social game")) +
+  theme_classic(base_size = 35) + 
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_markdown(size=25),
+        legend.key.width = unit(1.1, "cm"))
+
+gridPlot2 <- ggarrange(p3, p4, ncol = 2, nrow = 1, 
+                      labels = c("a)", "b)"), font.label = list(size = 50),
+                      hjust = 0, widths = c(1, 1.25))
+gridPlot2
+
+#colorBlindness::cvdPlot(gridPlot2)
+ggsave(plot = gridPlot2, "figures/q1.0/grid_varf.png", units = "px", height = 2400, width = 7980)
