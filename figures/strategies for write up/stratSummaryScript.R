@@ -23,89 +23,89 @@ HT_cols <- seq(tSteps+1, tides*(tSteps+1), tSteps+1)
 
 # save how strategy changes the mean waving proportion and energy level ####
 
-# pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
-#                      max = length(folders), # Maximum value of the progress bar
-#                      style = 3,    # Progress bar style (also available style = 1 and style = 2)
-#                      width = 50,   # Progress bar width. Defaults to getOption("width")
-#                      char = "=")   # Character used to create the bar
-# 
-# for(f in folders) {
-#   setTxtProgressBar(pb, which(folders == f))
-#   if(f %in% folders[4:6]) {
-#     subfolders <- list.files(f)
-#   } else {
-#     subfolders <- c("")
-#   }
-# 
-#   for(z in subfolders) {
-#     sizes <- unlist(read.table(paste(f, "/", z, "/simSizes.txt", sep = ""), sep = ",", header=F)[1,])
-# 
-#     simEnergy <- read.table(paste(f, "/", z, "/simEnergy.txt", sep = ""), sep = ",", header = F) %>%
-#       mutate(ID = 1:nrow(.)) %>%
-#       gather(timestep, energy, V1:all_of(paste("V",(length(.)-1),sep=""))) %>%
-#       mutate(time = as.numeric(substring(timestep, first = 2)),
-#              energy = as.numeric(energy)) %>%
-#       select(-timestep) %>%
-#       filter(time > ((tides/2) * (timesteps+1)) & time <= (((tides/2)+1) * (timesteps+1)))
-# 
-#     for(i in 1:nrow(simEnergy)) {
-#       simEnergy$size[i] <- sizes[simEnergy$ID[i]]
-#     }
-# 
-#     meanEnergy <- aggregate(simEnergy$energy, by = list(simEnergy$time, simEnergy$size),
-#                             FUN = function(x) c(meanE = mean(x), sdE = sd(x)))
-#     
-#     meanEnergy$energy <- meanEnergy$x[,1]
-#     meanEnergy$sd_energy <- meanEnergy$x[,2]
-#     meanEnergy <- meanEnergy[,-3]
-#     names(meanEnergy) <- c("time", "size", "energy", "sd_energy")
-#     meanEnergy$size <- ifelse(meanEnergy$size == 0, "Small", "Large")
-# 
-#     simBehav <- read.table(paste(f, "/", z, "/simBehav.txt", sep = ""), sep = ",", header = F, fileEncoding="latin1") %>%
-#       mutate(ID = 1:nrow(.)) %>%
-#       gather(timestep, behav, V1:all_of(paste("V",(length(.)-1),sep=""))) %>%
-#       mutate(time = as.numeric(substring(timestep, first = 2)),
-#              wave = ifelse(behav == "W", 1, 0)) %>%
-#       select(-c(timestep, behav))  %>%
-#       filter(time > ((tides/2) * (timesteps+1)) & time <= (((tides/2)+1) * (timesteps+1)))
-# 
-#     for(i in 1:nrow(simBehav)) {
-#       simBehav$size[i] <- sizes[simBehav$ID[i]]
-#     }
-# 
-#     meanWaving <- aggregate(simBehav, by = list(simBehav$time, simBehav$size), mean) %>%
-#       mutate(time = time - min(time)+1)
-# 
-#     meanWaving$size <- ifelse(meanWaving$size == 0, "Small", "Large")
-# 
-#     if(f == folders[1]) {
-#       mean_df <- data.frame(energy = meanEnergy$energy,
-#                             energy_sd = meanEnergy$sd_energy,
-#                             wave = meanWaving$wave,
-#                             time = meanEnergy$time,
-#                             size = meanEnergy$size,
-#                             strategy = ifelse(subfolders[1] == "",
-#                                               substring(f, first = 4),
-#                                               substring(z,
-#                                                         first = unlist(gregexpr(')', z))[1]+2))
-#       )
-#     } else {
-#       mean_df <- rbind(mean_df,
-#                        data.frame(energy = meanEnergy$energy,
-#                                   energy_sd = meanEnergy$sd_energy,
-#                                   wave = meanWaving$wave,
-#                                   time = meanEnergy$time,
-#                                   size = meanEnergy$size,
-#                                   strategy = ifelse(subfolders[1] == "",
-#                                                     substring(f, first = 4),
-#                                                     substring(z,
-#                                                               first = unlist(gregexpr(')', z))[1]+2))
-#                        )
-#       )
-#     }
-#   }
-# }
-# saveRDS(mean_df, "strategy_mean_df.rds")
+pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
+                     max = length(folders), # Maximum value of the progress bar
+                     style = 3,    # Progress bar style (also available style = 1 and style = 2)
+                     width = 50,   # Progress bar width. Defaults to getOption("width")
+                     char = "=")   # Character used to create the bar
+
+for(f in folders) {
+  setTxtProgressBar(pb, which(folders == f))
+  if(f %in% folders[4:6]) {
+    subfolders <- list.files(f)
+  } else {
+    subfolders <- c("")
+  }
+
+  for(z in subfolders) {
+    sizes <- unlist(read.table(paste(f, "/", z, "/simSizes.txt", sep = ""), sep = ",", header=F)[1,])
+
+    simEnergy <- read.table(paste(f, "/", z, "/simEnergy.txt", sep = ""), sep = ",", header = F) %>%
+      mutate(ID = 1:nrow(.)) %>%
+      gather(timestep, energy, V1:all_of(paste("V",(length(.)-1),sep=""))) %>%
+      mutate(time = as.numeric(substring(timestep, first = 2)),
+             energy = as.numeric(energy)) %>%
+      select(-timestep) %>%
+      filter(time > ((tides/2) * (timesteps+1)) & time <= (((tides/2)+1) * (timesteps+1)))
+
+    for(i in 1:nrow(simEnergy)) {
+      simEnergy$size[i] <- sizes[simEnergy$ID[i]]
+    }
+
+    meanEnergy <- aggregate(simEnergy$energy, by = list(simEnergy$time, simEnergy$size),
+                            FUN = function(x) c(meanE = mean(x), sdE = sd(x)))
+
+    meanEnergy$energy <- meanEnergy$x[,1]
+    meanEnergy$sd_energy <- meanEnergy$x[,2]
+    meanEnergy <- meanEnergy[,-3]
+    names(meanEnergy) <- c("time", "size", "energy", "sd_energy")
+    meanEnergy$size <- ifelse(meanEnergy$size == 0, "Small", "Large")
+
+    simBehav <- read.table(paste(f, "/", z, "/simBehav.txt", sep = ""), sep = ",", header = F, fileEncoding="latin1") %>%
+      mutate(ID = 1:nrow(.)) %>%
+      gather(timestep, behav, V1:all_of(paste("V",(length(.)-1),sep=""))) %>%
+      mutate(time = as.numeric(substring(timestep, first = 2)),
+             wave = ifelse(behav == "W", 1, 0)) %>%
+      select(-c(timestep, behav))  %>%
+      filter(time > ((tides/2) * (timesteps+1)) & time <= (((tides/2)+1) * (timesteps+1)))
+
+    for(i in 1:nrow(simBehav)) {
+      simBehav$size[i] <- sizes[simBehav$ID[i]]
+    }
+
+    meanWaving <- aggregate(simBehav, by = list(simBehav$time, simBehav$size), mean) %>%
+      mutate(time = time - min(time)+1)
+
+    meanWaving$size <- ifelse(meanWaving$size == 0, "Small", "Large")
+
+    if(f == folders[1]) {
+      mean_df <- data.frame(energy = meanEnergy$energy,
+                            energy_sd = meanEnergy$sd_energy,
+                            wave = meanWaving$wave,
+                            time = meanEnergy$time,
+                            size = meanEnergy$size,
+                            strategy = ifelse(subfolders[1] == "",
+                                              substring(f, first = 4),
+                                              substring(z,
+                                                        first = unlist(gregexpr(')', z))[1]+2))
+      )
+    } else {
+      mean_df <- rbind(mean_df,
+                       data.frame(energy = meanEnergy$energy,
+                                  energy_sd = meanEnergy$sd_energy,
+                                  wave = meanWaving$wave,
+                                  time = meanEnergy$time,
+                                  size = meanEnergy$size,
+                                  strategy = ifelse(subfolders[1] == "",
+                                                    substring(f, first = 4),
+                                                    substring(z,
+                                                              first = unlist(gregexpr(')', z))[1]+2))
+                       )
+      )
+    }
+  }
+}
+saveRDS(mean_df, "strategy_mean_df.rds")
 
 #load in summary df ####
 
@@ -967,7 +967,7 @@ ggsave(plot = all_plot4_3, "figures/q0.75 mort.png", units = "px", width = 7980,
 
 # plot baseline strategy ####
 
-brl<-read.table("1) baseline (no game, refrac)/largebrstrat.txt", header=F, sep = ",")
+brl<-read.table("1) baseline (no game, refrac)/new/largebrstrat.txt", header=F, sep = ",")
 
 eMax<-nrow(brl)
 tides<-(length(brl))/(tSteps+1)
@@ -1151,10 +1151,18 @@ pMateG <- unlist(read.table("2) game/largeFinalpMate.txt", header=F, sep = ",")[
   .[-c(which(. == "HT" | . == 0), is.na(.))]
 
 pMate_df <- data.frame(
-  mate = c(as.numeric(pMateG), rep_len(0.1, length(pMateG))), 
+  mate = c(as.numeric(pMateG), rep_len(0.3, length(pMateG))), 
   time = rep_len((1:tSteps), (tSteps*tides)*2), 
   tide = rep_len(rep(1:tides, each = tSteps), (tSteps*tides)*2),
   strategy = rep(c("Social game", "Baseline"), each = length(pMateG))
-)
+) %>%
+  filter(tide == tides/2)
 
-ggplot(data = pMate_df, aes(x = time, y = mate, ))
+pm1 <- ggplot(data = pMate_df, aes(x = time, y = mate, colour = factor(strategy))) + 
+  geom_line(linewidth = 3) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25)) + 
+  scale_y_continuous(name = "P(*m*)", limits = c(0.25, 0.35), breaks = seq(0.25, 0.35, 0.025)) + 
+  scale_color_manual(name = "Strategy", values = cols2) +
+  theme_classic(base_size = 30) + 
+  theme(axis.title.y = element_markdown())
+pm1
