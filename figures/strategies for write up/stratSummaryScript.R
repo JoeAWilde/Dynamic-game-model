@@ -19,6 +19,8 @@ timesteps <- 101
 tSteps <- 101
 tides <- 60
 
+HT_cols <- seq(tSteps+1, tides*(tSteps+1), tSteps+1)
+
 # save how strategy changes the mean waving proportion and energy level ####
 
 # pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
@@ -730,7 +732,6 @@ ggsave(plot = all_plot3_3, "figures/q0.75 mating.png", units = "px", width = 798
 #                      width = 50,   # Progress bar width. Defaults to getOption("width")
 #                      char = "=")   # Character used to create the bar
 # 
-# HT_cols <- seq(tSteps+1, tides*(tSteps+1), tSteps+1)
 # 
 # for(f in folders) {
 #   setTxtProgressBar(pb, which(folders == f))
@@ -1008,7 +1009,7 @@ a1<-ggplot(data=midTideL, aes(x = timestep, y = energy, fill = pWave))+
         legend.title = element_text(size = 35),
         legend.key.height = unit(1.35, 'cm'),
         legend.key.width = unit(1, "cm"))
-  #ggtitle("\"Baseline\"")
+#ggtitle("\"Baseline\"")
 #a1
 ggsave(plot = a1, "figures/q1.0/baseline_strategy.png", units = "px", height = 5200, width = 7980)
 
@@ -1056,7 +1057,7 @@ a2<-ggplot(data=midTideL2, aes(x = timestep, y = energy, fill = pWave))+
         legend.title = element_text(size = 35),
         legend.key.height = unit(1.35, 'cm'),
         legend.key.width = unit(1, "cm"))
-  #ggtitle("\"Social game\"")
+#ggtitle("\"Social game\"")
 #a2
 ggsave(plot = a2, "figures/q1.0/game_strategy.png", units = "px", height = 5200, width = 7980)
 
@@ -1136,9 +1137,24 @@ p4 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin"
         legend.key.width = unit(1.1, "cm"))
 
 gridPlot2 <- ggarrange(p3, p4, ncol = 2, nrow = 1, 
-                      labels = c("a)", "b)"), font.label = list(size = 50),
-                      hjust = 0, widths = c(1, 1.25))
+                       labels = c("a)", "b)"), font.label = list(size = 50),
+                       hjust = 0, widths = c(1, 1.25))
 gridPlot2
 
 #colorBlindness::cvdPlot(gridPlot2)
 ggsave(plot = gridPlot2, "figures/q1.0/grid_varf.png", units = "px", height = 2400, width = 7980)
+
+
+#extract and plot probability of mating for baseline and game ####
+
+pMateG <- unlist(read.table("2) game/largeFinalpMate.txt", header=F, sep = ",")[1,]) %>%
+  .[-c(which(. == "HT" | . == 0), is.na(.))]
+
+pMate_df <- data.frame(
+  mate = c(as.numeric(pMateG), rep_len(0.1, length(pMateG))), 
+  time = rep_len((1:tSteps), (tSteps*tides)*2), 
+  tide = rep_len(rep(1:tides, each = tSteps), (tSteps*tides)*2),
+  strategy = rep(c("Social game", "Baseline"), each = length(pMateG))
+)
+
+ggplot(data = pMate_df, aes(x = time, y = mate, ))
