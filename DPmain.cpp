@@ -21,8 +21,8 @@ const int HTcost                  = 10; //energetic cost of high tide
 const bool stochasticHTcost     = true; //is the high tide cost fixed or stochastic
 
 // Costs
-const int waveCost                 = 5; //cost of waving
-const double ptau               = 0.01; //probability of returning to non-timeout array
+const int waveCost                 = 2; //cost of waving
+const double ptau               = 0.02; //probability of returning to non-timeout array
 const bool postMatingTimeout    = true;
 const int mateBonus                = 5; //fitness bonus from mating
 const double pMort           = 0.00001; //probability of death in every timeStep
@@ -35,9 +35,9 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                    = 1.0; 
-const double pFemMax              = 0.3;
-const double pFemMin              = 0.3;
-const int multi                    = 0;
+const double pFemMax              = 0.5;
+const double pFemMin              = 0.05;
+const int multi                    = 20;
 
 //Two morphs parameters
 const double q                    = 1.0;
