@@ -31,7 +31,7 @@ pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
 
 for(f in folders) {
   setTxtProgressBar(pb, which(folders == f))
-  if(f %in% folders[4:6]) {
+  if(f %in% folders[c(2, 4:6)]) {
     subfolders <- list.files(f)
   } else {
     subfolders <- c("")
@@ -142,7 +142,7 @@ df$alpha <- as.numeric(df$alpha)
 df$zeta <- as.numeric(df$zeta)
 df$q <- as.numeric(df$q)
 
-df$time <- df$time - 3060
+# df$time <- df$time - 3060
 
 cFun <- colorRampPalette(c("orange","purple4"))
 cols <- cFun(2)
@@ -990,27 +990,48 @@ dataLong$pWave <- as.numeric(dataLong$pWave)
 
 midTideL <- subset(dataLong, tide == (tides/2))
 
-midTideL$bin <- ifelse(midTideL$pWave>0.3, 1, 0)
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
 
-a1<-ggplot(data=midTideL, aes(x = timestep, y = energy, fill = pWave))+
-  geom_tile()+
-  geom_hline(yintercept = c(seq(0.5,eMax-0.5, 1)), alpha = 0.2)+
-  geom_vline(xintercept = c(seq(0.5,tSteps-0.5, 1)), alpha = 0.2) +
+midTideL$half_line <- ifelse(midTideL$pWave > 0.5, 1, 0)
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+for(i in 1:91) {
+  if(i == 1) {
+    es <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es <- append(es, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+es <- append(es-0.5, rep_len(50.5, 9))
+
+a1<-ggplot()+
+  geom_tile(data=midTideL, aes(x = timestep, y = energy, fill = factor(bin)))+
+  # geom_hline(yintercept = c(seq(0.5,eMax-0.5, 1)), alpha = 0.2)+
+  # geom_vline(xintercept = c(seq(0.5,tSteps-0.5, 1)), alpha = 0.2) +
+  geom_line(aes(x = 1:100, y = es), linewidth = 2, alpha = 0.8) + 
   scale_x_continuous(breaks = seq(0, tSteps, 20), 
-                     limits = c(0,tSteps+1))+
-  scale_y_continuous(breaks = seq(0,eMax, 10))+
-  scale_fill_gradientn(name = "Probability of \nwaving", 
-                       limits=c(0,1),colors = c(low = "white", medium = "goldenrod1", high = "goldenrod4"), 
-                       breaks = c(0, 0.5, 1))+
+                     limits = c(0,100),
+                     expand = c(0, 0))+
+  scale_y_continuous(breaks = seq(0,50, 10),
+                     expand = c(0, 0))+
+  scale_fill_manual(name = "Probability of \nwaving",
+                    values = c("0" = "white", "0.5" = "goldenrod1", "1" = "goldenrod4"),
+                    labels = c("0.0 - 0.45", "0.45 - 0.55", "0.55 - 1.0")) + 
+  # scale_fill_gradientn(name = "Probability of \nwaving", 
+  #                      limits=c(0,1),colors = c(low = "white", medium = "goldenrod1", high = "goldenrod4"), 
+  #                      breaks = c(0, 0.5, 1))+
   xlab("Time")+
   ylab("Energy level") +
-  theme_classic(base_size = 40) + 
+  theme_classic(base_size = 40) +
   theme(legend.text = element_text(size = 35),
         legend.title = element_text(size = 35),
         legend.key.height = unit(1.35, 'cm'),
         legend.key.width = unit(1, "cm"))
 #ggtitle("\"Baseline\"")
-#a1
+a1
 ggsave(plot = a1, "figures/q1.0/baseline_strategy.png", units = "px", height = 5200, width = 7980)
 
 #plot strategy for game ####
@@ -1064,105 +1085,422 @@ ggsave(plot = a2, "figures/q1.0/game_strategy.png", units = "px", height = 5200,
 
 #plot prop waving for baseline and game ####
 
-cols2 <- c("goldenrod1", "navyblue")
+cols2 <- c("green4","navyblue", "goldenrod1")
 
-p1 <- ggplot(data = df[df$strategy == "baseline (no game, refrac)" | df$strategy == "game",],
-             aes(x = time, y = wave, colour = factor(strategy))) + 
-  geom_smooth(se = F, linewidth = 5, show.legend = F) + 
-  scale_x_continuous(name = "Time") + 
-  scale_y_continuous(name = "Proportion waving", limits = c(0, 0.05),
-                     breaks = seq(0, 0.05, 0.01)) + 
+p1 <- ggplot(data = df[df$strategy == "new" | df$strategy == "game" | df$strategy == "changing pFemMin",],
+             aes(x = time-3060, y = wave, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 3, show.legend = T) + 
+  scale_x_continuous(name = "Time",
+                     expand = c(0.01, 0)) + 
+  scale_y_continuous(name = "Prop. waving", limits = c(0, 0.05),
+                     breaks = seq(0, 0.05, 0.01),
+                     expand = c(0, 0)) + 
   scale_colour_manual(name = "Strategy", values = cols2,
-                      labels = c("Baseline", "Social game")) +
+                      labels = c("Variable *f*", "Social game", "Baseline")) +
   theme_classic(base_size = 35) + 
   theme(legend.title = element_text(size = 30),
-        legend.text = element_text(size = 25),
+        legend.text = element_markdown(size = 25),
         legend.key.width = unit(1.1, "cm"))
-#p1
+p1
 
 #ggsave(plot = p1, "figures/q1.0/BL_game_waving.png", units = "px", height = 4320, width = 7980)
 
 #plot energy for baseline and game ####
 
-p2 <- ggplot(data = df[df$strategy == "baseline (no game, refrac)" | df$strategy == "game",],
-             aes(x = time, y = energy, colour = factor(strategy))) + 
-  geom_smooth(se = F, linewidth = 5, show.legend = T) + 
-  scale_x_continuous(name = "Time") + 
+p2 <- ggplot(data = df[df$strategy == "new" | df$strategy == "game" | df$strategy == "changing pFemMin",],
+             aes(x = time-3060, y = energy, colour = factor(strategy))) + 
+  geom_line(linewidth = 3, show.legend = T) + 
+  scale_x_continuous(name = "",
+                     expand = c(0.01, 0)) + 
   scale_y_continuous(name = "Energy level", limits = c(15, 30),
-                     breaks = seq(15, 30, 5)) + 
+                     breaks = seq(15, 30, 5),
+                     expand = c(0, 0)) + 
   scale_colour_manual(name = "Strategy", values = cols2,
-                      labels = c("Baseline", "Social game")) +
+                       labels = c("Variable *f*", "Social game", "Baseline")) +
   theme_classic(base_size = 35) + 
   theme(legend.title = element_text(size = 30),
-        legend.text = element_text(size = 25),
+        legend.text = element_markdown(size = 25),
         legend.key.width = unit(1.1, "cm"))
-#p2
+p2
 
 #ggsave(plot = p2, "figures/q1.0/BL_game_energy.png", units = "px", height = 4320, width = 7980)
 
-#plot grid ####
-
-gridPlot <- ggarrange(p1, p2, ncol = 2, nrow = 1, 
-                      labels = c("a)", "b)"), font.label = list(size = 50),
-                      hjust = 0, widths = c(1, 1.25))
-
-ggsave(plot = gridPlot, "figures/q1.0/grid.png", units = "px", height = 2400, width = 7980)
-
-#plot grid for var_F ####
-cols3 <- c("navyblue", "green4")
-
-p3 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin",],
-             aes(x = time, y = wave, colour = factor(strategy))) + 
-  geom_smooth(se = F, linewidth = 5, show.legend = F) + 
-  scale_x_continuous(name = "Time") + 
-  scale_y_continuous(name = "Proportion waving", limits = c(0, 0.05),
-                     breaks = seq(0, 0.05, 0.01)) + 
-  scale_colour_manual(values = cols3) +
-  theme_classic(base_size = 35) + 
-  theme(legend.title = element_text(size = 30),
-        legend.text = element_text(size = 25),
-        legend.key.width = unit(1.1, "cm"))
-
-p4 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin",],
-             aes(x = time, y = energy, colour = factor(strategy))) + 
-  geom_smooth(se = F, linewidth = 5, show.legend = T) + 
-  scale_x_continuous(name = "Time") + 
-  scale_y_continuous(name = "Energy level", limits = c(15, 30),
-                     breaks = seq(15, 30, 5)) + 
-  scale_colour_manual(name = "Strategy", values = cols3,
-                      labels = c("Variable *f*","Social game")) +
-  theme_classic(base_size = 35) + 
-  theme(legend.title = element_text(size = 30),
-        legend.text = element_markdown(size=25),
-        legend.key.width = unit(1.1, "cm"))
-
-gridPlot2 <- ggarrange(p3, p4, ncol = 2, nrow = 1, 
-                       labels = c("a)", "b)"), font.label = list(size = 50),
-                       hjust = 0, widths = c(1, 1.25))
-gridPlot2
-
-#colorBlindness::cvdPlot(gridPlot2)
-ggsave(plot = gridPlot2, "figures/q1.0/grid_varf.png", units = "px", height = 2400, width = 7980)
-
-
-#extract and plot probability of mating for baseline and game ####
-
 pMateG <- unlist(read.table("2) game/largeFinalpMate.txt", header=F, sep = ",")[1,]) %>%
+  .[-c(which(. == "HT" | . == 0), is.na(.))]
+pMateF <- unlist(read.table("6) changing pFemMin/largeFinalpMate.txt", header=F, sep = ",")[1,]) %>%
   .[-c(which(. == "HT" | . == 0), is.na(.))]
 
 pMate_df <- data.frame(
-  mate = c(as.numeric(pMateG), rep_len(0.3, length(pMateG))), 
-  time = rep_len((1:tSteps), (tSteps*tides)*2), 
-  tide = rep_len(rep(1:tides, each = tSteps), (tSteps*tides)*2),
-  strategy = rep(c("Social game", "Baseline"), each = length(pMateG))
+  mate = c(as.numeric(pMateF), as.numeric(pMateG), rep_len(0.3, length(pMateG))), 
+  time = rep_len((1:tSteps), (tSteps*tides)*3), 
+  tide = rep_len(rep(1:tides, each = tSteps), (tSteps*tides)*3),
+  strategy = rep(c("Variable *f*", "Social game", "Baseline"), each = length(pMateG))
 ) %>%
   filter(tide == tides/2)
 
 pm1 <- ggplot(data = pMate_df, aes(x = time, y = mate, colour = factor(strategy))) + 
   geom_line(linewidth = 3) + 
-  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25)) + 
-  scale_y_continuous(name = "P(*m*)", limits = c(0.25, 0.35), breaks = seq(0.25, 0.35, 0.025)) + 
-  scale_color_manual(name = "Strategy", values = cols2) +
-  theme_classic(base_size = 30) + 
-  theme(axis.title.y = element_markdown())
+  scale_x_continuous(name = "", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_y_continuous(name = "P(*m*)", limits = c(0.2, 0.35), breaks = seq(0.2, 0.35, 0.05),
+                     expand = c(0, 0)) + 
+  scale_color_manual(name = "Strategy", values = rev(cols2)) +
+  theme_classic(base_size = 35) + 
+  theme(axis.title.y = element_markdown(),
+        legend.text = element_markdown(size = 42),
+        legend.title = element_text(size = 45),
+        legend.key.width = unit(2, "cm"),
+        axis.text.y = element_text(size = 20))
 pm1
+
+# ggsave(plot = pm1, "figures/q1.0/pMate_b_sg.png", units = "px", height = 4320, width = 6580)
+
+for(f in folders[c(2,3,7)]) {
+  if(f %in% folders[c(3, 7)]) z <- "" else z <- "new"
+  
+  timeout <- read.table(paste(f, "/", z, "/simTimeout.txt", sep = ""), sep = ",", header = F) %>%
+    .[,-HT_cols]
+  
+  prop_tau <- colMeans(timeout)
+  
+  rm(timeout)
+  
+  if(f == folders[2]) {
+    t_df_all <- data.frame( overall_tStep = 1:length(prop_tau),
+                        prop_tau,
+                        strategy = rep_len(ifelse(z == "",
+                                                  substring(f, first = 4),
+                                                  substring(z,
+                                                            first = unlist(gregexpr(')', z))[1]+2)),
+                                           length(prop_tau))
+    )
+  } else {
+    t_df_all <- rbind(t_df_all, data.frame( overall_tStep = 1:length(prop_tau),
+                                    prop_tau,
+                                    strategy = rep_len(ifelse(z == "",
+                                                              substring(f, first = 4),
+                                                              substring(z,
+                                                                        first = unlist(gregexpr(')', z))[1]+2)),
+                                                       length(prop_tau))
+                        )
+    )
+  }
+}
+
+t_df <- subset(t_df_all, overall_tStep >= 3060 & overall_tStep < 3160)
+t_df$strategy <- ifelse(t_df$strategy == "game", "Social game", 
+                        ifelse(t_df$strategy == "new", "Baseline", "Variable *f*"))
+
+pt1 <- ggplot(data = t_df, aes(x = overall_tStep-3060, y = prop_tau, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 3) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_y_continuous(name = "Prop. in refractory period", limits = c(0.5, 0.55), breaks = seq(0.5, 0.55, 0.025),
+                     expand = c(0, 0)) + 
+  scale_color_manual(name = "Strategy", values = rev(cols2)) +
+  theme_classic(base_size = 35) +
+  theme(legend.text = element_markdown(size = 42),
+        legend.title = element_text(size = 45),
+        legend.key.width = unit(2, "cm"),
+        axis.title.y = element_text(size = 28),
+        axis.text.y = element_text(size = 20))
+pt1
+
+#plot grid ####
+
+gridPlot <- ggarrange(pm1, p2,  p1, pt1, ncol = 2, nrow = 2, 
+                      labels = c("a)", "b)", "c)", "d)"), font.label = list(size = 45),
+                      hjust = 0, common.legend = T, legend = "right",
+                      widths = c(1,1))
+
+ggsave(plot = gridPlot, "figures/q1.0/grid.png", units = "px", height = 4320, width = 7980)
+
+#plot grid for var_F ####
+cols3 <- c("green4", "navyblue")
+
+p3 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin",],
+             aes(x = time-3060, y = wave, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5, show.legend = T) + 
+  scale_x_continuous(name = "Time") + 
+  scale_y_continuous(name = "Prop. waving", limits = c(0, 0.05),
+                     breaks = seq(0, 0.05, 0.01)) + 
+  scale_colour_manual(name = "Strategy", 
+                      values = cols3, 
+                      labels = c("Variable *f*", "Social game")) +
+  theme_classic(base_size = 35) + 
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_markdown(size = 25))
+p3
+p4 <- ggplot(data = df[df$strategy == "game" | df$strategy == "changing pFemMin",],
+             aes(x = time-3060, y = energy, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5, show.legend = T) + 
+  scale_x_continuous(name = "") + 
+  scale_y_continuous(name = "Energy level", limits = c(15, 30),
+                     breaks = seq(15, 30, 5)) + 
+  scale_colour_manual(name = "Strategy", 
+                      values = cols3, 
+                      labels = c("Variable *f*", "Social game")) +
+  theme_classic(base_size = 35) + 
+  theme(legend.title = element_text(size = 30),
+        legend.text = element_markdown(size=25),
+        legend.key.width = unit(1.1, "cm"))
+p4
+
+pMateF <- unlist(read.table("6) changing pFemMin/largeFinalpMate.txt", header=F, sep = ",")[1,]) %>%
+  .[-c(which(. == "HT" | . == 0), is.na(.))]
+
+pMate_df <- data.frame(
+  mate = c(as.numeric(pMateF), as.numeric(pMateG)), 
+  time = rep_len((1:tSteps), (tSteps*tides)*2), 
+  tide = rep_len(rep(1:tides, each = tSteps), (tSteps*tides)*2),
+  strategy = rep(c("Variable *f*", "Social game"), each = length(pMateF))
+) %>%
+  filter(tide == tides/2)
+
+pm2 <- ggplot(data = pMate_df, aes(x = time, y = mate, colour = factor(strategy))) + 
+  geom_line(linewidth = 5) + 
+  scale_x_continuous(name = "", limits = c(0, 100), breaks = seq(0, 100, 25)) + 
+  scale_y_continuous(name = "P(*m*)", limits = c(0.2, 0.35), breaks = seq(0.2, 0.35, 0.05)) + 
+  scale_color_manual(name = "Strategy", values = rev(cols3)) +
+  theme_classic(base_size = 35) + 
+  theme(axis.title.y = element_markdown(),
+        legend.text = element_markdown(size = 42),
+        legend.title = element_text(size = 45),
+        legend.key.width = unit(2, "cm"),
+        axis.text.y = element_text(size = 30))
+pm2
+
+# ggsave(plot = pm1, "figures/q1.0/pMate_b_sg.png", units = "px", height = 4320, width = 6580)
+
+  
+timeout2 <- read.table("6) changing pFemMin/simTimeout.txt", sep = ",", header = F) %>%
+  .[,-HT_cols]
+
+prop_tau2 <- colMeans(timeout2)
+
+rm(timeout2)
+
+t_df2 <- data.frame( overall_tStep = rep_len(1:length(prop_tau2), length(prop_tau2)*2),
+                     prop_tau =  c(prop_tau2, t_df_all$prop_tau[t_df_all$strategy == "game"]),
+                     strategy = rep(c("Variable *f*", "Social game"), each = length(prop_tau2))
+)
+
+t_df2 <- subset(t_df2, overall_tStep >= 3060 & overall_tStep < 3160)
+
+pt2 <- ggplot(data = t_df2, aes(x = overall_tStep-3060, y = prop_tau, colour = factor(strategy))) + 
+  geom_smooth(se = F, linewidth = 5) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25)) + 
+  scale_y_continuous(name = "Prop. in refractory period", limits = c(0.5, 0.55), breaks = seq(0.5, 0.55, 0.01)) + 
+  scale_color_manual(name = "Strategy", values = rev(cols3)) +
+  theme_classic(base_size = 35) +
+  theme(legend.text = element_markdown(size = 42),
+        legend.title = element_text(size = 45),
+        legend.key.width = unit(2, "cm"),
+        axis.title.y = element_text(size = 28),
+        axis.text.y = element_text(size = 20))
+pt2
+
+
+gridPlot2 <- ggarrange(pm2, p4, p3, pt2, ncol = 2, nrow = 2, 
+                      labels = c("a)", "b)", "c)", "d)"), font.label = list(size = 45),
+                      hjust = 0, common.legend = T, legend = "right",
+                      widths = c(1,1))
+
+
+#colorBlindness::cvdPlot(gridPlot2)
+ggsave(plot = gridPlot2, "figures/q1.0/grid_varf.png", units = "px", height = 4320, width = 7980)
+
+
+#extract and plot probability of mating for baseline and game ####
+
+
+var_f<-read.table("6) changing pFemMin/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(var_f)
+tides<-(length(var_f))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+var_f<-cbind(eLevels, var_f)
+
+vDfLength <- paste("V",(length(var_f)-1),sep="")
+
+dataLong<-gather(data = var_f, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave>0.3, 1, 0)
+
+a1<-ggplot(data=midTideL, aes(x = timestep, y = energy, fill = pWave))+
+  geom_tile()+
+  geom_hline(yintercept = c(seq(0.5,eMax-0.5, 1)), alpha = 0.2)+
+  geom_vline(xintercept = c(seq(0.5,tSteps-0.5, 1)), alpha = 0.2) +
+  scale_x_continuous(breaks = seq(0, tSteps, 20), 
+                     limits = c(0,tSteps+1))+
+  scale_y_continuous(breaks = seq(0,eMax, 10))+
+  scale_fill_gradientn(name = "Probability of \nwaving", 
+                       limits=c(0,1),colors = c(low = "white", medium = "green2", high = "green4"), 
+                       breaks = c(0, 0.5, 1))+
+  xlab("Time")+
+  ylab("Energy level") +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_text(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+#ggtitle("\"Baseline\"")
+a1
+ggsave(plot = a1, "figures/q1.0/var_f strategy.png", units = "px", height = 5200, width = 7980)
+
+#plot new strategy diagrams ####
+
+brl<-read.table("1) baseline (no game, refrac)/new/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+for(i in 1:91) {
+  if(i == 1) {
+    es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+es_b <- append(es_b, rep_len(50, 9))
+
+
+brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+for(i in 1:92) {
+  if(i == 1) {
+    es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+es_g <- append(es_g, rep_len(50, 8))
+
+
+brl<-read.table("6) changing pFemMin/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+for(i in 1:93) {
+  if(i == 1) {
+    es_f <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_f <- append(es_f, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+es_f <- append(es_f, rep_len(50, 7))
+
+strat_df <- data.frame(energy = c(es_b, es_g, es_f),
+                       time = rep_len(1:100, 300),
+                       strategy = rep(c("3Baseline", "2Social game", "1Variable *f*"), each = 100)
+                       )
+
+cols4 <- c("goldenrod1", "navyblue", "green4")
+all_strat <- ggplot(data = strat_df) + 
+  geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+  geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+  scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+                     expand = c(0, 0)) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_colour_manual(name = "Strategy",
+                      values = rev(cols4),
+                      labels = c("Variable *f*", "Social game", "Baseline")) + 
+  scale_fill_manual(name = "Strategy",
+                    values = rev(cols4),
+                    labels = c("Variable *f*", "Social game", "Baseline")) + 
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_markdown(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+
+ggsave(plot = all_strat, "figures/q1.0/all_strat.png", units = "px", height = 5200, width = 7980)
