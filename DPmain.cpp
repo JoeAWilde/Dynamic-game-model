@@ -35,8 +35,8 @@ const double p                   = 0.9; //probability of success on each trial
 // Mating parameters
 const double theta               = 0.25; //parameters controlling the relationship between rivals waving and probability of mating
 const double b                    = 1.0; 
-const double pFemMax              = 0.5;
-const double pFemMin             = 0.05;
+const double pFemMax              = 1.0;
+const double pFemMin             = 0.01;
 const int multi                    = 20;
 
 //Two morphs parameters
@@ -44,11 +44,6 @@ const double q                    = 1.0;
 const double alpha                = 0.0;
 const double zeta                 = 0.0;
 
-/* // pFemMax parameters
-const double intercept           = 0.1;
-const double slp                   = 1;
-const double slp2                = 0.8;
-const double slp3               = -1.3; */
 
 // Strategy and updating parameters
 const double error               = 0.07; //McNamara error function steepness
@@ -474,7 +469,7 @@ int main()
                         smallForFitness[tide][e][t] = 1.0;
                         smallBRfitness[tide][e][t] = 1.0;
                         smallResiFitness[tide][e][t] = 1.0;
-                        smallResiTimeoutFitness[tide][e][t] = 1.0;
+                        smallResiTimeoutFitness[tide][e][t] = 1.0; //terminal reward
                     }else
                     {
                         largeTimeoutFitness[tide][e][t] = 0.0;
