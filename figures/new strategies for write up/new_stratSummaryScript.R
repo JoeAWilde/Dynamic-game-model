@@ -397,18 +397,18 @@ es_df3 <- rbind(es_df3[1:101,],
 
 strat_df <- data.frame(energy = c(es_df1$energy, es_df2$energy, es_df3$energy),
                        time = c(es_df1$time, es_df2$time, es_df3$time),
-                       strategy = c(rep_len("Baseline", nrow(es_df1)),
-                                    rep_len("Social game", nrow(es_df2)),
-                                    rep_len("Variable *f*", nrow(es_df3)))
+                       strategy = c(rep_len("No rivals", nrow(es_df1)),
+                                    rep_len("Mating competition", nrow(es_df2)),
+                                    rep_len("Variable female activity", nrow(es_df3)))
 )
 
 strat_df$strategy <- factor(strat_df$strategy,
-                            levels = c("Variable *f*", 
-                                       "Social game", 
-                                       "Baseline"))
+                            levels = c("Variable female activity", 
+                                       "Mating competition", 
+                                       "No rivals"))
 #manual jitter
-strat_df$energy <- ifelse(strat_df$strategy == "Variable *f*", strat_df$energy-0.3,
-                          ifelse(strat_df$strategy == "Social game", strat_df$energy+0.3, strat_df$energy))
+strat_df$energy <- ifelse(strat_df$strategy == "Variable female activity", strat_df$energy-0.3,
+                          ifelse(strat_df$strategy == "Mating competition", strat_df$energy+0.3, strat_df$energy))
 
 
 cols4 <- c("goldenrod1","navyblue","green4")
@@ -428,12 +428,14 @@ all_strat <- ggplot(data = strat_df) +
   scale_fill_manual(name = "Strategy",
                     values = cols4,
                     breaks = unique(strat_df$strategy)) +
+  geom_text(aes(x = 50, y = 47, label = "WAVE"), size = 10) + 
+  geom_text(aes(x = 51, y = 39, label = "FORAGE"), size = 10) + 
   theme_classic(base_size = 40) + 
   theme(legend.text = element_markdown(size = 35),
         legend.title = element_text(size = 35),
         legend.key.height = unit(1.35, 'cm'),
         legend.key.width = unit(1, "cm"))
-
+all_strat
 
 ggsave(plot = all_strat, "figures/q1.0/all_strat.png", units = "px", height = 5200, width = 7980)
 
@@ -454,7 +456,7 @@ p1 <- ggplot(data = df[df$strategy == "baseline (no game, refrac)" | df$strategy
                      expand = c(0, 0)) +
   scale_colour_manual(name = "Strategy", values = cols2,
                       breaks = c("baseline (no game, refrac)", "game", "changing pFemMin"),
-                      labels = c("Baseline", "Social game","Variable *f*")) +
+                      labels = c("No rivals", "Mating competition","Variable female activity")) +
   theme_classic(base_size = 35) + 
   theme(legend.title = element_text(size = 30),
         legend.text = element_markdown(size = 25),
@@ -473,7 +475,7 @@ p2 <- ggplot(data = df[df$strategy == "baseline (no game, refrac)" | df$strategy
                      expand = c(0, 0)) +
   scale_colour_manual(name = "Strategy", values = cols2,
                       breaks = c("baseline (no game, refrac)", "game", "changing pFemMin"),
-                      labels = c("Baseline","Social game","Variable *f*")) +
+                      labels = c("No rivals", "Mating competition","Variable female activity")) +
   theme_classic(base_size = 35) + 
   theme(legend.title = element_text(size = 30),
         legend.text = element_markdown(size = 25),
@@ -1566,13 +1568,13 @@ es_df3 <- rbind(es_df3[1:102,],
 
 strat_df <- data.frame(energy = c(es_df1$energy, es_df2$energy, es_df3$energy),
                        time = c(es_df1$time, es_df2$time, es_df3$time),
-                       strategy = c(rep_len("Social game", nrow(es_df1)),
+                       strategy = c(rep_len("Mating competition", nrow(es_df1)),
                                     rep_len("q = 0.5, Large", nrow(es_df2)),
                                     rep_len("q = 0.5, Small", nrow(es_df3)))
 )
 
 strat_df$strategy <- factor(strat_df$strategy,
-                            levels = c("Social game",
+                            levels = c("Mating competition",
                                        "q = 0.5, Large",
                                        "q = 0.5, Small"))
 #manual jitter
@@ -1604,3 +1606,1273 @@ all_strat <- ggplot(data = strat_df) +
 all_strat
 
 ggsave(plot = all_strat, "figures/q1.0/ls_strat.png", units = "px", height = 5200, width = 7980)
+
+#extra variables ####
+
+#gamma pmt ####
+npm<-read.table("7) postmating timeout/7_1) no post mating timeout/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(npm)
+tides<-(length(npm))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+npm<-cbind(eLevels, npm)
+
+vDfLength <- paste("V",(length(npm)-1),sep="")
+
+dataLong<-gather(data = npm, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_b <- c()
+time_es_b <- 1:100
+new_time_es_b <- c()
+
+for(i in 2:length(es_b)) {
+  new_es_b <- c(new_es_b, es_b[i-1])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i-1])
+  
+  if(es_b[i] != es_b[i-1]) {
+    new_es_b <- c(new_es_b, es_b[i-1]) 
+    new_time_es_b <- c(new_time_es_b, time_es_b[i])
+  }
+  
+  new_es_b <- c(new_es_b, es_b[i])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i])
+}
+
+
+ptau4<-read.table("7) postmating timeout/7_2) ptau 0.04/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(ptau4)
+tides<-(length(ptau4))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+ptau4<-cbind(eLevels, ptau4)
+
+vDfLength <- paste("V",(length(ptau4)-1),sep="")
+
+dataLong<-gather(data = ptau4, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_g <- c()
+time_es_g <- 1:100
+new_time_es_g <- c()
+
+for(i in 2:length(es_g)) {
+  new_es_g <- c(new_es_g, es_g[i-1])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i-1])
+  
+  if(es_g[i] != es_g[i-1]) {
+    new_es_g <- c(new_es_g, es_g[i-1]) 
+    new_time_es_g <- c(new_time_es_g, time_es_g[i])
+  }
+  
+  new_es_g <- c(new_es_g, es_g[i])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i])
+}
+
+
+
+ptau1<-read.table("7) postmating timeout/7_3) ptau 0.01/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(ptau1)
+tides<-(length(ptau1))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+ptau1<-cbind(eLevels, ptau1)
+
+vDfLength <- paste("V",(length(ptau1)-1),sep="")
+
+dataLong<-gather(data = ptau1, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_f <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_f <- append(es_f, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_f <- c()
+time_es_f <- 1:100
+new_time_es_f <- c()
+
+for(i in 2:length(es_f)) {
+  new_es_f <- c(new_es_f, es_f[i-1])
+  new_time_es_f <- c(new_time_es_f, time_es_f[i-1])
+  
+  if(es_f[i] != es_f[i-1]) {
+    new_es_f <- c(new_es_f, es_f[i-1]) 
+    new_time_es_f <- c(new_time_es_f, time_es_f[i])
+  }
+  
+  new_es_f <- c(new_es_f, es_f[i])
+  new_time_es_f <- c(new_time_es_f, time_es_f[i])
+}
+
+
+brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_m <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_m <- append(es_m, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_m <- c()
+time_es_m <- 1:100
+new_time_es_m <- c()
+
+for(i in 2:length(es_m)) {
+  new_es_m <- c(new_es_m, es_m[i-1])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i-1])
+  
+  if(es_m[i] != es_m[i-1]) {
+    new_es_m <- c(new_es_m, es_m[i-1]) 
+    new_time_es_m <- c(new_time_es_m, time_es_m[i])
+  }
+  
+  new_es_m <- c(new_es_m, es_m[i])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i])
+}
+
+
+strat_df <- data.frame(energy = c(new_es_b, new_es_g, new_es_f, new_es_m),
+                       time = c(new_time_es_b, new_time_es_g, new_time_es_f, new_time_es_m),
+                       strategy = c(rep_len("ptau 1",length(new_es_b)), 
+                                    rep_len("ptau 0.04", length(new_es_g)),
+                                    rep_len("ptau 0.01", length(new_es_f)),
+                                    rep_len("ptau 0.02", length(new_es_m)))
+)
+
+cols4 <- c("#E69F00", "#56B4E9", "#009E73", "#D81B60")
+all_strat2 <- ggplot(data = strat_df) + 
+  geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+  geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+  scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+                     expand = c(0, 0)) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_colour_manual(name = expression(gamma),
+                      values = rev(cols4),
+                      labels = c("0.01", "0.02", "0.04", "1.0")) +
+  scale_fill_manual(name = expression(gamma),
+                    values = rev(cols4),
+                    labels = c("0.01", "0.02", "0.04", "1.0")) +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_markdown(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+all_strat2
+ggsave(plot = all_strat2, "figures/gamma_pmt.png", units = "px", width = 7980, height = 4320)
+
+#wave cost ####
+
+wc5<-read.table("8) wave cost/8_1) wavecost 5/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(wc5)
+tides<-(length(wc5))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+wc5<-cbind(eLevels, wc5)
+
+vDfLength <- paste("V",(length(wc5)-1),sep="")
+
+dataLong<-gather(data = wc5, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_b <- c()
+time_es_b <- 1:100
+new_time_es_b <- c()
+
+for(i in 2:length(es_b)) {
+  new_es_b <- c(new_es_b, es_b[i-1])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i-1])
+  
+  if(es_b[i] != es_b[i-1]) {
+    new_es_b <- c(new_es_b, es_b[i-1]) 
+    new_time_es_b <- c(new_time_es_b, time_es_b[i])
+  }
+  
+  new_es_b <- c(new_es_b, es_b[i])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i])
+}
+
+
+wc10<-read.table("8) wave cost/8_2) wavecost 10/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(wc10)
+tides<-(length(wc10))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+wc10<-cbind(eLevels, wc10)
+
+vDfLength <- paste("V",(length(wc10)-1),sep="")
+
+dataLong<-gather(data = wc10, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_g <- c()
+time_es_g <- 1:100
+new_time_es_g <- c()
+
+for(i in 2:length(es_g)) {
+  new_es_g <- c(new_es_g, es_g[i-1])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i-1])
+  
+  if(es_g[i] != es_g[i-1]) {
+    new_es_g <- c(new_es_g, es_g[i-1]) 
+    new_time_es_g <- c(new_time_es_g, time_es_g[i])
+  }
+  
+  new_es_g <- c(new_es_g, es_g[i])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i])
+}
+
+
+
+brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_m <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_m <- append(es_m, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_m <- c()
+time_es_m <- 1:100
+new_time_es_m <- c()
+
+for(i in 2:length(es_m)) {
+  new_es_m <- c(new_es_m, es_m[i-1])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i-1])
+  
+  if(es_m[i] != es_m[i-1]) {
+    new_es_m <- c(new_es_m, es_m[i-1]) 
+    new_time_es_m <- c(new_time_es_m, time_es_m[i])
+  }
+  
+  new_es_m <- c(new_es_m, es_m[i])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i])
+}
+
+
+strat_df <- data.frame(energy = c(new_es_b, new_es_g, new_es_m),
+                       time = c(new_time_es_b, new_time_es_g, new_time_es_m),
+                       strategy = c(rep_len("2wv 5",length(new_es_b)), 
+                                    rep_len("3wv 10", length(new_es_g)),
+                                    rep_len("1wv 2", length(new_es_m)))
+)
+
+cols4 <- c("#E69F00", "#56B4E9", "#009E73")
+
+title_exp <- expression(italic(c[w]))
+
+all_strat3 <- ggplot(data = strat_df) + 
+  geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+  geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+  scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+                     expand = c(0, 0)) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_colour_manual(name = title_exp,
+                      values = rev(cols4),
+                      labels = c(2, 5, 10)) +
+  scale_fill_manual(name = title_exp,
+                    values = rev(cols4),
+                    labels = c(2, 5, 10)) +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_markdown(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+all_strat3
+ggsave(plot = all_strat3, "figures/wavecost.png", units = "px", width = 7980, height = 4320)
+
+#changing theta ####
+th1<-read.table("9) changing theta/9_1) theta 1/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(th1)
+tides<-(length(th1))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+th1<-cbind(eLevels, th1)
+
+vDfLength <- paste("V",(length(th1)-1),sep="")
+
+dataLong<-gather(data = th1, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_b <- c()
+time_es_b <- 1:100
+new_time_es_b <- c()
+
+for(i in 2:length(es_b)) {
+  new_es_b <- c(new_es_b, es_b[i-1])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i-1])
+  
+  if(es_b[i] != es_b[i-1]) {
+    new_es_b <- c(new_es_b, es_b[i-1]) 
+    new_time_es_b <- c(new_time_es_b, time_es_b[i])
+  }
+  
+  new_es_b <- c(new_es_b, es_b[i])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i])
+}
+
+
+th175<-read.table("9) changing theta/9_2) theta 1.75/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(th175)
+tides<-(length(th175))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+th175<-cbind(eLevels, th175)
+
+vDfLength <- paste("V",(length(th175)-1),sep="")
+
+dataLong<-gather(data = th175, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_g <- c()
+time_es_g <- 1:100
+new_time_es_g <- c()
+
+for(i in 2:length(es_g)) {
+  new_es_g <- c(new_es_g, es_g[i-1])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i-1])
+  
+  if(es_g[i] != es_g[i-1]) {
+    new_es_g <- c(new_es_g, es_g[i-1]) 
+    new_time_es_g <- c(new_time_es_g, time_es_g[i])
+  }
+  
+  new_es_g <- c(new_es_g, es_g[i])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i])
+}
+
+
+
+brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_m <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_m <- append(es_m, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_m <- c()
+time_es_m <- 1:100
+new_time_es_m <- c()
+
+for(i in 2:length(es_m)) {
+  new_es_m <- c(new_es_m, es_m[i-1])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i-1])
+  
+  if(es_m[i] != es_m[i-1]) {
+    new_es_m <- c(new_es_m, es_m[i-1]) 
+    new_time_es_m <- c(new_time_es_m, time_es_m[i])
+  }
+  
+  new_es_m <- c(new_es_m, es_m[i])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i])
+}
+
+
+strat_df <- data.frame(energy = c(new_es_b, new_es_g, new_es_m),
+                       time = c(new_time_es_b, new_time_es_g, new_time_es_m),
+                       strategy = c(rep_len("2th1",length(new_es_b)), 
+                                    rep_len("3th175", length(new_es_g)),
+                                    rep_len("1th025", length(new_es_m)))
+)
+
+cols4 <- c("#E69F00", "#56B4E9", "#009E73")
+
+title_exp <- expression(italic(theta))
+
+all_strat4 <- ggplot(data = strat_df) + 
+  geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+  geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+  scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+                     expand = c(0, 0)) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_colour_manual(name = title_exp,
+                      values = rev(cols4),
+                      labels = c(0.25, 1, 1.75)) +
+  scale_fill_manual(name = title_exp,
+                    values = rev(cols4),
+                    labels = c(0.25, 1, 1.75)) +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_markdown(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+all_strat4
+ggsave(plot = all_strat4, "figures/theta.png", units = "px", width = 7980, height = 4320)
+
+#fitness bonus ####
+fb5<-read.table("10) fitness bonus/10_1) beta 5/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(fb5)
+tides<-(length(fb5))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+fb5<-cbind(eLevels, fb5)
+
+vDfLength <- paste("V",(length(fb5)-1),sep="")
+
+dataLong<-gather(data = fb5, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_b <- c()
+time_es_b <- 1:100
+new_time_es_b <- c()
+
+for(i in 2:length(es_b)) {
+  new_es_b <- c(new_es_b, es_b[i-1])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i-1])
+  
+  if(es_b[i] != es_b[i-1]) {
+    new_es_b <- c(new_es_b, es_b[i-1]) 
+    new_time_es_b <- c(new_time_es_b, time_es_b[i])
+  }
+  
+  new_es_b <- c(new_es_b, es_b[i])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i])
+}
+
+
+fb10<-read.table("10) fitness bonus/10_2) beta 10/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(fb10)
+tides<-(length(fb10))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+fb10<-cbind(eLevels, fb10)
+
+vDfLength <- paste("V",(length(fb10)-1),sep="")
+
+dataLong<-gather(data = fb10, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_g <- c()
+time_es_g <- 1:100
+new_time_es_g <- c()
+
+for(i in 2:length(es_g)) {
+  new_es_g <- c(new_es_g, es_g[i-1])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i-1])
+  
+  if(es_g[i] != es_g[i-1]) {
+    new_es_g <- c(new_es_g, es_g[i-1]) 
+    new_time_es_g <- c(new_time_es_g, time_es_g[i])
+  }
+  
+  new_es_g <- c(new_es_g, es_g[i])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i])
+}
+
+
+
+brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_m <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_m <- append(es_m, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_m <- c()
+time_es_m <- 1:100
+new_time_es_m <- c()
+
+for(i in 2:length(es_m)) {
+  new_es_m <- c(new_es_m, es_m[i-1])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i-1])
+  
+  if(es_m[i] != es_m[i-1]) {
+    new_es_m <- c(new_es_m, es_m[i-1]) 
+    new_time_es_m <- c(new_time_es_m, time_es_m[i])
+  }
+  
+  new_es_m <- c(new_es_m, es_m[i])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i])
+}
+
+
+strat_df <- data.frame(energy = c(new_es_b, new_es_g, new_es_m),
+                       time = c(new_time_es_b, new_time_es_g, new_time_es_m),
+                       strategy = c(rep_len("2beta5",length(new_es_b)), 
+                                    rep_len("3beta10", length(new_es_g)),
+                                    rep_len("1beta1", length(new_es_m)))
+)
+
+cols4 <- c("#E69F00", "#56B4E9", "#009E73")
+
+title_exp <- expression(italic(beta))
+
+all_strat5 <- ggplot(data = strat_df) + 
+  geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+  geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+  scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+                     expand = c(0, 0)) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_colour_manual(name = title_exp,
+                      values = rev(cols4),
+                      labels = c(1, 5, 10)) +
+  scale_fill_manual(name = title_exp,
+                    values = rev(cols4),
+                    labels = c(1, 5, 10)) +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_markdown(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+all_strat5
+ggsave(plot = all_strat5, "figures/beta.png", units = "px", width = 7980, height = 4320)
+
+#terminal reward ####
+
+tr0<-read.table("11) terminal reward/11_1) tr 0/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(tr0)
+tides<-(length(tr0))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+tr0<-cbind(eLevels, tr0)
+
+vDfLength <- paste("V",(length(tr0)-1),sep="")
+
+dataLong<-gather(data = tr0, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_b <- c()
+time_es_b <- 1:100
+new_time_es_b <- c()
+
+for(i in 2:length(es_b)) {
+  new_es_b <- c(new_es_b, es_b[i-1])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i-1])
+  
+  if(es_b[i] != es_b[i-1]) {
+    new_es_b <- c(new_es_b, es_b[i-1]) 
+    new_time_es_b <- c(new_time_es_b, time_es_b[i])
+  }
+  
+  new_es_b <- c(new_es_b, es_b[i])
+  new_time_es_b <- c(new_time_es_b, time_es_b[i])
+}
+
+
+tr10<-read.table("11) terminal reward/11_2) tr 10/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(tr10)
+tides<-(length(tr10))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+tr10<-cbind(eLevels, tr10)
+
+vDfLength <- paste("V",(length(tr10)-1),sep="")
+
+dataLong<-gather(data = tr10, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_g <- c()
+time_es_g <- 1:100
+new_time_es_g <- c()
+
+for(i in 2:length(es_g)) {
+  new_es_g <- c(new_es_g, es_g[i-1])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i-1])
+  
+  if(es_g[i] != es_g[i-1]) {
+    new_es_g <- c(new_es_g, es_g[i-1]) 
+    new_time_es_g <- c(new_time_es_g, time_es_g[i])
+  }
+  
+  new_es_g <- c(new_es_g, es_g[i])
+  new_time_es_g <- c(new_time_es_g, time_es_g[i])
+}
+
+
+
+brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+
+eMax<-nrow(brl)
+tides<-(length(brl))/(tSteps+1)
+
+eLevels <- 0:(eMax-1)
+brl<-cbind(eLevels, brl)
+
+vDfLength <- paste("V",(length(brl)-1),sep="")
+
+dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+dataLong$timestep <- as.numeric(timestepNew)
+names(dataLong)<-c("energy","timestep","pWave")
+
+dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+
+dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+
+dataLong$pWave <- as.numeric(dataLong$pWave)
+
+midTideL <- subset(dataLong, tide == (tides/2))
+
+midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+                       ifelse(midTideL$pWave<0.55, 0.5, 1))
+
+e_switch <- midTideL[midTideL$pWave > 0.5,]
+
+e_switch <- e_switch[e_switch$energy>10,]
+
+for(i in 1:100) {
+  if(i == 1) {
+    es_m <- c(min(e_switch$energy[e_switch$timestep == i]))
+  } else {
+    es_m <- append(es_m, min(e_switch$energy[e_switch$timestep == i]))
+  }
+}
+
+new_es_m <- c()
+time_es_m <- 1:100
+new_time_es_m <- c()
+
+for(i in 2:length(es_m)) {
+  new_es_m <- c(new_es_m, es_m[i-1])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i-1])
+  
+  if(es_m[i] != es_m[i-1]) {
+    new_es_m <- c(new_es_m, es_m[i-1]) 
+    new_time_es_m <- c(new_time_es_m, time_es_m[i])
+  }
+  
+  new_es_m <- c(new_es_m, es_m[i])
+  new_time_es_m <- c(new_time_es_m, time_es_m[i])
+}
+
+
+strat_df <- data.frame(energy = c(new_es_b, new_es_g, new_es_m),
+                       time = c(new_time_es_b, new_time_es_g, new_time_es_m),
+                       strategy = c(rep_len("2tr0",length(new_es_b)), 
+                                    rep_len("3tr10", length(new_es_g)),
+                                    rep_len("1tr1", length(new_es_m)))
+)
+
+cols4 <- c("#E69F00", "#56B4E9", "#009E73")
+
+title_exp <- c("Terminal reward")
+
+all_strat6 <- ggplot(data = strat_df) + 
+  geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+  geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+  scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+                     expand = c(0, 0)) + 
+  scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+                     expand = c(0, 0)) + 
+  scale_colour_manual(name = title_exp,
+                      values = rev(cols4),
+                      labels = c(1, 0, 10)) +
+  scale_fill_manual(name = title_exp,
+                    values = rev(cols4),
+                    labels = c(1, 0, 10)) +
+  theme_classic(base_size = 40) + 
+  theme(legend.text = element_markdown(size = 35),
+        legend.title = element_text(size = 35),
+        legend.key.height = unit(1.35, 'cm'),
+        legend.key.width = unit(1, "cm"))
+all_strat6
+ggsave(plot = all_strat6, "figures/terminal reward.png", units = "px", width = 7980, height = 4320)
+
+#starting strat ####
+# ss1<-read.table("12) starting strat/12_1) p_w 1/largebrstrat.txt", header=F, sep = ",")
+# 
+# eMax<-nrow(ss1)
+# tides<-(length(ss1))/(tSteps+1)
+# 
+# eLevels <- 0:(eMax-1)
+# ss1<-cbind(eLevels, ss1)
+# 
+# vDfLength <- paste("V",(length(ss1)-1),sep="")
+# 
+# dataLong<-gather(data = ss1, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+# timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+# dataLong$timestep <- as.numeric(timestepNew)
+# names(dataLong)<-c("energy","timestep","pWave")
+# 
+# dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+# 
+# dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+# 
+# dataLong$pWave <- as.numeric(dataLong$pWave)
+# 
+# midTideL <- subset(dataLong, tide == (tides/2))
+# 
+# midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+#                        ifelse(midTideL$pWave<0.55, 0.5, 1))
+# 
+# e_switch <- midTideL[midTideL$pWave > 0.5,]
+# 
+# e_switch <- e_switch[e_switch$energy>10,]
+# 
+# for(i in 1:100) {
+#   if(i == 1) {
+#     es_b <- c(min(e_switch$energy[e_switch$timestep == i]))
+#   } else {
+#     es_b <- append(es_b, min(e_switch$energy[e_switch$timestep == i]))
+#   }
+# }
+# 
+# new_es_b <- c()
+# time_es_b <- 1:100
+# new_time_es_b <- c()
+# 
+# for(i in 2:length(es_b)) {
+#   new_es_b <- c(new_es_b, es_b[i-1])
+#   new_time_es_b <- c(new_time_es_b, time_es_b[i-1])
+#   
+#   if(es_b[i] != es_b[i-1]) {
+#     new_es_b <- c(new_es_b, es_b[i-1]) 
+#     new_time_es_b <- c(new_time_es_b, time_es_b[i])
+#   }
+#   
+#   new_es_b <- c(new_es_b, es_b[i])
+#   new_time_es_b <- c(new_time_es_b, time_es_b[i])
+# }
+# 
+# 
+# ss0<-read.table("12) starting strat/12_2) p_w 0/largebrstrat.txt", header=F, sep = ",")
+# 
+# eMax<-nrow(ss0)
+# tides<-(length(ss0))/(tSteps+1)
+# 
+# eLevels <- 0:(eMax-1)
+# ss0<-cbind(eLevels, ss0)
+# 
+# vDfLength <- paste("V",(length(ss0)-1),sep="")
+# 
+# dataLong<-gather(data = ss0, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+# timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+# dataLong$timestep <- as.numeric(timestepNew)
+# names(dataLong)<-c("energy","timestep","pWave")
+# 
+# dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+# 
+# dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+# 
+# dataLong$pWave <- as.numeric(dataLong$pWave)
+# 
+# midTideL <- subset(dataLong, tide == (tides/2))
+# 
+# midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+#                        ifelse(midTideL$pWave<0.55, 0.5, 1))
+# 
+# e_switch <- midTideL[midTideL$pWave > 0.5,]
+# 
+# e_switch <- e_switch[e_switch$energy>10,]
+# 
+# for(i in 1:100) {
+#   if(i == 1) {
+#     es_g <- c(min(e_switch$energy[e_switch$timestep == i]))
+#   } else {
+#     es_g <- append(es_g, min(e_switch$energy[e_switch$timestep == i]))
+#   }
+# }
+# 
+# new_es_g <- c()
+# time_es_g <- 1:100
+# new_time_es_g <- c()
+# 
+# for(i in 2:length(es_g)) {
+#   new_es_g <- c(new_es_g, es_g[i-1])
+#   new_time_es_g <- c(new_time_es_g, time_es_g[i-1])
+#   
+#   if(es_g[i] != es_g[i-1]) {
+#     new_es_g <- c(new_es_g, es_g[i-1]) 
+#     new_time_es_g <- c(new_time_es_g, time_es_g[i])
+#   }
+#   
+#   new_es_g <- c(new_es_g, es_g[i])
+#   new_time_es_g <- c(new_time_es_g, time_es_g[i])
+# }
+# 
+# 
+# 
+# brl<-read.table("2) game/largebrstrat.txt", header=F, sep = ",")
+# 
+# eMax<-nrow(brl)
+# tides<-(length(brl))/(tSteps+1)
+# 
+# eLevels <- 0:(eMax-1)
+# brl<-cbind(eLevels, brl)
+# 
+# vDfLength <- paste("V",(length(brl)-1),sep="")
+# 
+# dataLong<-gather(data = brl, timestep, pWave, V1:all_of(vDfLength),factor_key = FALSE)
+# timestepNew <- rep_len(rep(1:(tSteps+1), each = eMax), length.out = nrow(dataLong))
+# dataLong$timestep <- as.numeric(timestepNew)
+# names(dataLong)<-c("energy","timestep","pWave")
+# 
+# dataLong$tide <- rep(1:tides, each = (eMax*(tSteps+1)))
+# 
+# dataLong <- subset(dataLong, !timestep %in% c(tSteps, tSteps+1))
+# 
+# dataLong$pWave <- as.numeric(dataLong$pWave)
+# 
+# midTideL <- subset(dataLong, tide == (tides/2))
+# 
+# midTideL$bin <- ifelse(midTideL$pWave<0.45, 0, 
+#                        ifelse(midTideL$pWave<0.55, 0.5, 1))
+# 
+# e_switch <- midTideL[midTideL$pWave > 0.5,]
+# 
+# e_switch <- e_switch[e_switch$energy>10,]
+# 
+# for(i in 1:100) {
+#   if(i == 1) {
+#     es_m <- c(min(e_switch$energy[e_switch$timestep == i]))
+#   } else {
+#     es_m <- append(es_m, min(e_switch$energy[e_switch$timestep == i]))
+#   }
+# }
+# 
+# new_es_m <- c()
+# time_es_m <- 1:100
+# new_time_es_m <- c()
+# 
+# for(i in 2:length(es_m)) {
+#   new_es_m <- c(new_es_m, es_m[i-1])
+#   new_time_es_m <- c(new_time_es_m, time_es_m[i-1])
+#   
+#   if(es_m[i] != es_m[i-1]) {
+#     new_es_m <- c(new_es_m, es_m[i-1]) 
+#     new_time_es_m <- c(new_time_es_m, time_es_m[i])
+#   }
+#   
+#   new_es_m <- c(new_es_m, es_m[i])
+#   new_time_es_m <- c(new_time_es_m, time_es_m[i])
+# }
+# 
+# 
+# strat_df <- data.frame(energy = c(new_es_b, new_es_g, new_es_m),
+#                        time = c(new_time_es_b, new_time_es_g, new_time_es_m),
+#                        strategy = c(rep_len("2pw1",length(new_es_b)), 
+#                                     rep_len("3pw0", length(new_es_g)),
+#                                     rep_len("1pw05", length(new_es_m)))
+# )
+# 
+# cols4 <- c("#E69F00", "#56B4E9", "#009E73")
+# 
+# title_exp <- expression("Initial strategy",italic(p[w]))
+# 
+# all_strat7 <- ggplot(data = strat_df) + 
+#   geom_line(aes(x = time, y = energy, colour = factor(strategy)), linewidth = 1.5) +
+#   geom_ribbon(aes(x = time, ymin = energy, ymax = 50, fill = factor(strategy)), alpha = 0.2) +
+#   scale_y_continuous(name = "Energy level", limits = c(0, 50), breaks = seq(0, 50, 10),
+#                      expand = c(0, 0)) + 
+#   scale_x_continuous(name = "Time", limits = c(0, 100), breaks = seq(0, 100, 25),
+#                      expand = c(0, 0)) + 
+#   scale_colour_manual(name = title_exp,
+#                       values = rev(cols4),
+#                       labels = c(1, 0, 0.5)) +
+#   scale_fill_manual(name = title_exp,
+#                     values = rev(cols4),
+#                     labels = c(1, 0, 0.5)) +
+#   theme_classic(base_size = 40) + 
+#   theme(legend.text = element_markdown(size = 35),
+#         legend.title = element_text(size = 35),
+#         legend.key.height = unit(1.35, 'cm'),
+#         legend.key.width = unit(1, "cm"))
+# all_strat7
+# ggsave(plot = all_strat7, "figures/starting strat.png", units = "px", width = 7980, height = 4320)
