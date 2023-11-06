@@ -7,13 +7,13 @@ library(ggtext)
 
 setwd("E:/OneDrive - University of Exeter/Dynamic programming/0.6 C++/newDead/figures/new strategies for write up")
 
-density <- 1000
+density <- 1001
 
 phi_w_l <- seq(0, 1, length.out = density)
 
 phi_w_s <- seq(0, 1, length.out = density)
 
-f_0 <- 0.0001
+f_0 <- 0.01
 f_1 <- 1
 chi <- 0.5
 aa <- 0.75
@@ -81,9 +81,12 @@ p1 <- ggplot(data = df, aes(x = phi_w_l, y = phi_w_s, fill = factor(pm_bin))) +
   geom_tile() + 
   scale_x_continuous(name = x_lab) + 
   scale_y_continuous(name = y_lab) +
-  scale_fill_manual(values = RColorBrewer::brewer.pal(9, "BuPu")[3:9],
-                    name = "P(*m*)<sub>[*z*, *t*]</sub>", 
-                    labels = c("0.00 - 0.05", "0.05 - 0.10", "0.10 - 0.15", "0.15 - 0.20", "0.20 - 0.25", "0.25 - 0.30")) + 
+  # scale_fill_manual(values = RColorBrewer::brewer.pal(9, "BuPu")[3:9],
+  #                    
+  #                   ) + 
+  scale_fill_viridis_d(
+                      name = "P(*m*)<sub>[*z*, *t*]</sub>",
+                      labels = c("0.00 - 0.05", "0.05 - 0.10", "0.10 - 0.15", "0.15 - 0.20", "0.20 - 0.25", "0.25 - 0.30")) + 
   theme_classic(base_size = 55) + 
   theme(legend.title = element_markdown(),
         legend.key.height = unit(1.2, "cm"),
